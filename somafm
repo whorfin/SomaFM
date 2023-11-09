@@ -141,9 +141,21 @@ def configPlayer():
                     }
                 break
             elif player_name == 'mpv':
+                # https://github.com/mpv-player/mpv/issues/5793
+                # Regarding reconnecting, this is tricky too. HTTP normally
+                # reconnects, but only if the server accepts range requests. This
+                # is because for "static" streams, you want to continue where it
+                # left off, instead of starting from the start again.
+                #
+                # mp3 web radio (aka icy/shoutcast/etc.) will not accept range
+                # requests, so mpv won't reconnect by default. You can force
+                # this with --stream-lavf-o=reconnect_streamed=1. I'm hesitant
+                # to enable this by default, because sometimes media is
+                # delivered without support for range requests, which could
+                # lead to very irritating behavior, especially with HLS/DASH.
                 player = {
                     'name': 'mpv',
-                    'arg': '',
+                    'arg': '--stream-lavf-o=reconnect_streamed=1',
                     'stream': 'PLS'
                     }
                 break
