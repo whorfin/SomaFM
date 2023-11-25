@@ -146,9 +146,24 @@ def configPlayer():
                 # since we are using playlists, loop over the playlist to handle server oopses
                 # or network issues; "force" re-evaluates each entry for validity each time 
                 # through rather than caching the [possibly temporary] busted status
+                #
+                # The caching stuff here looks a little weird but ensures a 4s buffer
+                #   somafm allows fast download of approx 8 seconds, then it is "realtime"
+                #   (so we debugged with a 10sec cache setting)
+                # Adding "--demuxer-cache-wait=yes" won't start until cache is full, otherwise
+                #   this combo of flags (which oddly requires cache-pause-initial though it 
+                #   doesn't wait) will set things up to maintain a 4 second cache, reading
+                #   more if needed even while playing
+
+                cacheSecs = 4
                 player = {
                     'name': 'mpv',
-                    'arg': '--loop-playlist=force',
+                    'arg': ['--loop-playlist=force',
+                        '--cache=yes',
+                        '--cache-secs={}'.format(cacheSecs),
+                        '--cache-pause-wait={}'.format(cacheSecs),
+                        '--cache-pause=yes',
+                        '--cache-pause-initial=yes'],
                     'stream': 'PLS'
                     }
                 break
@@ -309,8 +324,14 @@ def startStream(channel_name):
 
     # Open stream
     print("Loading stream...", end='')
+    psa = [player['name']]
+    if type(player['arg']) is list:
+        psa += player['arg']
+    else:
+        psa.append(player['arg'])
+    psa.append(stream_link)
     try:
-        playstream = subprocess.Popen([player['name'], player['arg'], stream_link],
+        playstream = subprocess.Popen(psa,
                     stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False)
     except:
         print(Fore.RED + "FAILED")
