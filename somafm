@@ -146,7 +146,7 @@ def configPlayer():
                 # through rather than caching the [possibly temporary] busted status
                 player = {
                     'name': 'mpv',
-                    'arg': '--loop-playlists=force',
+                    'arg': '--loop-playlist=force',
                     'stream': 'PLS'
                     }
                 break
