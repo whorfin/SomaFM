@@ -150,7 +150,8 @@ def configPlayer():
                 # The caching stuff here looks a little weird but ensures a 4s buffer
                 #   somafm allows fast download of approx 8 seconds, then it is "realtime"
                 #   (so we debugged with a 10sec cache setting)
-                # Adding "--demuxer-cache-wait=yes" won't start until cache is full, otherwise
+                # Adding "--demuxer-cache-wait=yes" won't start until cache is full (and is 
+                #   supposed to have no further influence during runtime), otherwise
                 #   this combo of flags (which oddly requires cache-pause-initial though it 
                 #   doesn't wait) will set things up to maintain a 4 second cache, reading
                 #   more if needed even while playing
