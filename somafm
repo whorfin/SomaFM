@@ -164,7 +164,8 @@ def configPlayer():
                         '--cache-secs={}'.format(cacheSecs),
                         '--cache-pause-wait={}'.format(cacheSecs),
                         '--cache-pause=yes',
-                        '--cache-pause-initial=yes'],
+                        '--cache-pause-initial=yes',
+                        '--audio-device=alsa/pipewire'],
                     'stream': 'PLS'
                     }
                 break
