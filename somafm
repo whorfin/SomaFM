@@ -162,9 +162,12 @@ def configPlayer():
                     'arg': ['--loop-playlist=force',
                         '--cache=yes',
                         '--cache-secs={}'.format(cacheSecs),
-                        '--cache-pause-wait={}'.format(cacheSecs),
-                        '--cache-pause=yes',
-                        '--cache-pause-initial=yes',
+                            # these settings only change start behavior it seems
+                            #
+                            #'--cache-pause-wait={}'.format(cacheSecs),
+                            #'--cache-pause=yes',
+                            #'--cache-pause-initial=yes',
+                        # this seems to fix glitches and ticks occuring with pulse pipewire
                         '--audio-device=alsa/pipewire'],
                     'stream': 'PLS'
                     }
