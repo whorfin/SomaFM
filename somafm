@@ -159,7 +159,8 @@ def configPlayer():
                 cacheSecs = 4
                 player = {
                     'name': 'mpv',
-                    'arg': ['--loop-playlist=force',
+                    'arg': ['--no-video',
+                        '--loop-playlist=force',
                         '--cache=yes',
                         '--cache-secs={}'.format(cacheSecs),
                             # these settings only change start behavior it seems
