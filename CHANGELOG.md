@@ -1,5 +1,9 @@
 # Version History
 
+## January 5th, 2024
+- Fix station ID matching
+- Add Nerd Show to list of station IDs
+
 ## November 16th, 2023
 - Add experimental track saving (press C during playback)
 
