@@ -31,9 +31,6 @@ except ImportError:
 # Basic config options:
 #-----------------------------------------------------------------------
 
-# Default quality (0 is highest available)
-quality_num = 0
-
 # Default channel to play
 default_chan = "Groove Salad"
 
@@ -193,10 +190,11 @@ def downloadChannels():
     # Put channels in list
     channel_list = channel_raw.json()['channels']
 
+    # why would you do this?  not for me, mpv enjoyer...
     # Strip HTTPS from playlist URLs
-    for channel in channel_list:
-        for playlist_link in channel['playlists']:
-            playlist_link['url'] = playlist_link['url'].replace('https', 'http')
+    #for channel in channel_list:
+    #    for playlist_link in channel['playlists']:
+    #        playlist_link['url'] = playlist_link['url'].replace('https', 'http')
 
     print("OK")
 
@@ -245,7 +243,27 @@ def channelGet(request, channel_name):
             if request == "VERIFY":
                 return()
             elif request == "PLS":
-                return(channel['playlists'][quality_num]['url'])
+                # the first one isn't necessarily the best; "quality_num" was just the nth, 
+                # but they have names! and aren't necessarily ordered by quality; mp3 comes 
+                # before aac now
+                #   we want "highest" and 'aac' if we can get it [should always be true]
+                #return(channel['playlists'][0]['url'])
+
+                #print(channel['playlists'])
+                url = None
+                fmt = None
+                for pls in channel['playlists']:
+                    #print(pls)
+                    if pls['quality'] == "highest":
+                        url = pls['url']
+                        fmt = pls['format']
+                        if fmt == "aac":
+                            return(pls['url'])
+                if url != None:
+                    print(Fore.RED + "Could not find AAC stream, settling for " + fmt + Fore.WHITE)
+                    return(url)
+                print(Fore.RED + "No 'highest' quality stream found, bailing")
+                clean_exit()
             elif request == "NAME":
                 return(channel['title'])
             elif request == "DESC":
@@ -254,6 +272,8 @@ def channelGet(request, channel_name):
                 return(channel[image_size])
             elif request == "URL":
                 # Download PLS
+                #   whorfin - this is currently broken, copy logic from PLS for the
+                #   proper format
                 pls_file = requests.get(channel['playlists'][quality_num]['url'])
 
                 # Split out file URL
