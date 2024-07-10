@@ -43,9 +43,6 @@ cast_sync = True
 # Highlight station IDs in yellow
 station_highlights = True
 
-# Show which player is being used in header
-show_player = False
-
 # Experimental Options:
 #-----------------------------------------------------------------------
 
@@ -79,9 +76,6 @@ pid_file = tmp_dir + "/soma.pid"
 # Known station IDs
 station_ids = ["SomaFM", "Big Url", "Nerd Show"]
 
-# Supported players
-players = ['mplayer','mpg123','mpv']
-
 # Define functions
 #-----------------------------------------------------------------------#
 # Catch ctrl-c
@@ -90,8 +84,7 @@ def signal_handler(sig, frame):
     print('\033[?25h')
     print(Fore.RED + "Force closing...")
     # Kill any sneaky players
-    for player_name in players:
-        subprocess.call(['killall', '-q', player_name])
+    subprocess.call(['killall', '-q', 'mpv'])
     clean_exit()
 
 # Do necessary cleanup when closing on good terms
@@ -100,70 +93,39 @@ def clean_exit():
     os.unlink(pid_file)
     sys.exit(0)
 
-# Check for supported players and config variables
+# set up the player
 def configPlayer():
     # Make player definition global, init name
     global player
-    player = {'name': ''}
-    # Loop through list of players
-    for player_name in players:
-        # Match found
-        if shutil.which(player_name):
-            if player_name == 'mplayer':
-                player = {
-                    'name': 'mplayer',
-                    'arg': '-playlist',
-                    'sarg1': '-ao',
-                    'sarg2': 'null',
-                    'stream': 'PLS'
-                    }
-                break
-            elif player_name == 'mpg123':
-                player = {
-                    'name': 'mpg123',
-                    'arg': '-@',
-                    'sarg1': '-a',
-                    'sarg2': 'null',
-                    'stream': 'MP3'
-                    }
-                break
-            elif player_name == 'mpv':
-                # since we are using playlists, loop over the playlist to handle server oopses
-                # or network issues; "force" re-evaluates each entry for validity each time 
-                # through rather than caching the [possibly temporary] busted status
+    # since we are using playlists, loop over the playlist to handle server oopses
+    # or network issues; "force" re-evaluates each entry for validity each time 
+    # through rather than caching the [possibly temporary] busted status
+    #
+    # The caching stuff here looks a little weird but ensures a 4s buffer
+    #   somafm allows fast download of approx 8 seconds, then it is "realtime"
+    #   (so we debugged with a 10sec cache setting)
+    # Adding "--demuxer-cache-wait=yes" won't start until cache is full (and is 
+    #   supposed to have no further influence during runtime), otherwise
+    #   this combo of flags (which oddly requires cache-pause-initial though it 
+    #   doesn't wait) will set things up to maintain a 4 second cache, reading
+    #   more if needed even while playing
+    cacheSecs = 4
+    player = {
+        'name': 'mpv',
+        'arg': ['--no-video',
+            '--loop-playlist=force',
+            '--cache=yes',
+            '--cache-secs={}'.format(cacheSecs),
+                # these settings only change start behavior it seems
                 #
-                # The caching stuff here looks a little weird but ensures a 4s buffer
-                #   somafm allows fast download of approx 8 seconds, then it is "realtime"
-                #   (so we debugged with a 10sec cache setting)
-                # Adding "--demuxer-cache-wait=yes" won't start until cache is full (and is 
-                #   supposed to have no further influence during runtime), otherwise
-                #   this combo of flags (which oddly requires cache-pause-initial though it 
-                #   doesn't wait) will set things up to maintain a 4 second cache, reading
-                #   more if needed even while playing
+                #'--cache-pause-wait={}'.format(cacheSecs),
+                #'--cache-pause=yes',
+                #'--cache-pause-initial=yes',
+            # this seems to fix glitches and ticks occuring with pulse pipewire
+            '--audio-device=alsa/pipewire'],
+        'stream': 'PLS'
+        }
 
-                cacheSecs = 4
-                player = {
-                    'name': 'mpv',
-                    'arg': ['--no-video',
-                        '--loop-playlist=force',
-                        '--cache=yes',
-                        '--cache-secs={}'.format(cacheSecs),
-                            # these settings only change start behavior it seems
-                            #
-                            #'--cache-pause-wait={}'.format(cacheSecs),
-                            #'--cache-pause=yes',
-                            #'--cache-pause-initial=yes',
-                        # this seems to fix glitches and ticks occuring with pulse pipewire
-                        '--audio-device=alsa/pipewire'],
-                    'stream': 'PLS'
-                    }
-                break
-
-    # If dict hasn't been populated, then no player was found
-    if not player['name']:
-        print(Fore.RED + "No supported player found!")
-        print(Fore.WHITE + "Please check documentation for a list of supported players.")
-        clean_exit()
 
 # Download master list of channels
 def downloadChannels():
@@ -189,12 +151,6 @@ def downloadChannels():
 
     # Put channels in list
     channel_list = channel_raw.json()['channels']
-
-    # why would you do this?  not for me, mpv enjoyer...
-    # Strip HTTPS from playlist URLs
-    #for channel in channel_list:
-    #    for playlist_link in channel['playlists']:
-    #        playlist_link['url'] = playlist_link['url'].replace('https', 'http')
 
     print("OK")
 
@@ -352,14 +308,10 @@ def startCast(channel_name):
 
     # Start player with no audio to get track info
     if cast_sync:
-        # Some player specific tweaks
-        if player['name'] == 'mpg123':
-            # mpg123 needs @ added to stream name
-            stream_url = '-@'+channelGet('MP3', args.channel)
-        elif player['name'] == 'mpv':
-            # Playing without audio doesn't seem to work in mpv, so bail out for now
-            print(Fore.RED + "Cast sync not supported on mpv.")
-            clean_exit()
+        # Playing without audio doesn't seem to work in mpv, so bail out for now
+        #   which is fine since i haven't tested mpv with chromecast
+        print(Fore.RED + "Cast sync not supported on mpv.")
+        clean_exit()
 
         try:
             playstream = subprocess.Popen([player['name'], player['sarg1'], player['sarg2'], stream_url],
@@ -404,36 +356,11 @@ def streamInfo(playstream):
         if InfoPrinted is False:
             # mpv
             if line.startswith(b'File tags:'):
-                if show_player:
-                    print(Fore.CYAN + "Player: " + Fore.WHITE + "mpv")
                 # mpv doesn't give us much info, so have to pull channel name from args
                 print(Fore.CYAN + "Channel: " + Fore.WHITE + channelGet('NAME', args.channel))
                 print(Fore.RED + "--------------------------")
                 print(Fore.WHITE + "Press Crtl+C to Quit", end="")
                 InfoPrinted = True
-
-            # mpg123
-            if line.startswith(b'ICY-NAME'):
-                if show_player:
-                    print(Fore.CYAN + "Player: " + Fore.WHITE + "mpg123")
-                print(Fore.CYAN + "Channel: " + Fore.WHITE + line.decode().split(':', 2)[1].strip())
-            if line.startswith(b'MPEG'):
-                print(Fore.CYAN + "Bitrate: " + Fore.WHITE + line.decode().strip())
-                print(Fore.RED + "--------------------------", end="")
-                InfoPrinted = True
-
-            # Mplayer
-            if line.startswith(b'Name'):
-                if show_player:
-                    print(Fore.CYAN + "Player: " + Fore.WHITE + "MPlayer")
-                print(Fore.CYAN + "Channel: " + Fore.WHITE + line.decode().split(':', 2)[1].strip())
-            if line.startswith(b'Genre'):
-                print(Fore.CYAN + "Genre: " + Fore.WHITE + line.decode().split(':', 1)[1].strip())
-            if line.startswith(b'Bitrate'):
-                print(Fore.CYAN + "Bitrate: " + Fore.WHITE + line.decode().split(':', 1)[1].strip())
-                print(Fore.RED + "--------------------------", end="")
-                InfoPrinted = True
-
 
         # Save track to file
         if line.startswith(b'Capturing') and CaptureEnable:
@@ -533,10 +460,6 @@ with open(pid_file, 'w') as pidfile:
 # Enable log file
 if args.file:
     log_tracks = True
-
-# Enable player disambiguation
-if args.player:
-    show_player = True
 
 # Get screen ready
 colorama.init()
