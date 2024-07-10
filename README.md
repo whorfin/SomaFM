@@ -60,6 +60,10 @@ This option shows the number of listeners for each currently online SomaFM chann
 #### --cast
 If you have the [pychromecast](https://github.com/balloob/pychromecast) library installed, this option will start playback of the given SomaFM channel on the given Chromecast device. If no device name is given, the default specified by the `chromecast_name` variable will be used.
 
+#### --nopw
+I love pipewire, and by default enable it without requiring config shenanigans.
+If you have yet to embrace the future, you can use this flag to skip this setup.
+
 ## Supported Players
 This program is simply a front-end, playback requires one of these media players to be installed:
 * [MPlayer](http://www.mplayerhq.hu/design7/news.html) (Best choice)
