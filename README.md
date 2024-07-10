@@ -6,6 +6,11 @@ As of the current version, the player supports completely unnecessary features l
 
 For an up-to-date list of what's new, check the [Changelog](CHANGELOG.md)
 
+## whorfinized
+This is my fork.  Huge thanks to the original author.  I've removed support for players I don't use, simplifying the code for optimized mpv support.  Ignore the disparaging comments from original author...
+The main features I've added to mpv launch are robust reconnection by leveraging playlist looping, and fast start, along with pipewire support.
+Importantly, I've also fixed channel stream extraction parsing to always use the highest quality codec at the highest bitrate; previous logic was dependent on json ordering and assumed the first entry was the best, which incorrectly resulted in mp3.
+
 ## Installation
 Starting with version 1.5, the stable version of this program is available on PyPi and can be installed with the following command:
 
