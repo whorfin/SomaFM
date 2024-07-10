@@ -7,7 +7,7 @@ As of the current version, the player supports completely unnecessary features l
 For an up-to-date list of what's new, check the [Changelog](CHANGELOG.md)
 
 ## whorfinized
-This is my fork.  Huge thanks to the original author.  I've removed support for players I don't use, simplifying the code for optimized mpv support.  Ignore the disparaging comments from original author...
+This is my fork.  Huge thanks to the original author.  I've removed support for players I don't use, simplifying the code for optimized mpv support.
 The main features I've added to mpv launch are robust reconnection by leveraging playlist looping, and fast start, along with pipewire support.
 Importantly, I've also fixed channel stream extraction parsing to always use the highest quality codec at the highest bitrate; previous logic was dependent on json ordering and assumed the first entry was the best, which incorrectly resulted in mp3.
 
@@ -64,11 +64,9 @@ If you have the [pychromecast](https://github.com/balloob/pychromecast) library 
 I love pipewire, and by default enable it without requiring config shenanigans.
 If you have yet to embrace the future, you can use this flag to skip this setup.
 
-## Supported Players
-This program is simply a front-end, playback requires one of these media players to be installed:
-* [MPlayer](http://www.mplayerhq.hu/design7/news.html) (Best choice)
-* [mpg123](https://www.mpg123.de/) (Lightweight, but lacks AAC support)
-* [mpv](https://mpv.io/) (Slow to start stream, minimal functionality)
+## Supported Player
+This program is simply a front-end, playback requires mpv to be installed:
+* [mpv](https://mpv.io/)
 
 ## Desktop Notifications
 There is currently experimental support for desktop notifications on Linux using libnotify. They can be enabled by changing the value of the boolean variable `desktop_notifications` or turned on temporarily with the `-n` option.
@@ -80,7 +78,6 @@ While the script is already at a point where I would consider it feature complet
 
 * Display keyboard controls during playback
 * ~~Random channel selection~~ (Thanks blutack)
-* ~~Support other players (mpv/VLC)~~
 * ~~Filter station IDs from track listing~~
 * ~~Desktop notifications on new track~~
 
