@@ -2,7 +2,7 @@
 # Python SomaFM Player
 This simple player for [SomaFM](https://somafm.com/) keeps the distractions, and system resource utilization, to an absolute minimum. The look of this player was inspired equally by the excellent SomaFM terminal interfaces which were already available, and the 90's hacker aesthetic that I seem to find myself nostalgic for when listening to a Shoutcast stream at 2AM.
 
-As of the current version, the player supports completely unnecessary features like desktop notifications and Chromecast support at no extra charge. Known to work on Linux (including Raspberry Pi and Chrome OS's Crostini), Mac OS, and even Windows.
+As of the current version, the player supports completely unnecessary features like Chromecast support at no extra charge. Known to work on Linux (including Raspberry Pi and Chrome OS's Crostini), Mac OS, and even Windows.
 
 For an up-to-date list of what's new, check the [Changelog](CHANGELOG.md)
 
@@ -10,8 +10,9 @@ For an up-to-date list of what's new, check the [Changelog](CHANGELOG.md)
 This is my fork.  Huge thanks to the original author.  I've removed support for players I don't use, simplifying the code for optimized mpv support.
 The main features I've added to mpv launch are robust reconnection by leveraging playlist looping, and fast start, along with pipewire support.
 Importantly, I've also fixed channel stream extraction parsing to always use the highest quality codec at the highest bitrate; previous logic was dependent on json ordering and assumed the first entry was the best, which incorrectly resulted in mp3.
+Desktop notification was yeeted along with channel icon download, and the channel list is downloaded directory every launch, and not written to a file.  Caching this caused problems when channels were updated.
 
-If aren't me and want to try this, try the "--nopw" flag if you aren't rocking pipewire.
+If you aren't me and want to try this, try the "--nopw" flag if you aren't rocking pipewire.
 
 ## Installation
 Starting with version 1.5, the stable version of this program is available on PyPi and can be installed with the following command:
@@ -19,7 +20,7 @@ Starting with version 1.5, the stable version of this program is available on Py
 ```console
 pip3 install somafm
 ```
-If you'd like to keep up with the latest version, just clone this repository to your system and run the script.
+This forked version is not backported, so you need to run it from this repository; no need to install if you don't want to, you can just run the `somafm` executable.
 
 ## Dependencies
 At minimum, this program requires Python 3 versions of the following libraries:
@@ -67,21 +68,6 @@ If you have yet to embrace the future, you can use this flag to skip this setup.
 ## Supported Player
 This program is simply a front-end, playback requires mpv to be installed:
 * [mpv](https://mpv.io/)
-
-## Desktop Notifications
-There is currently experimental support for desktop notifications on Linux using libnotify. They can be enabled by changing the value of the boolean variable `desktop_notifications` or turned on temporarily with the `-n` option.
-
-![notifications](screenshots/notifications.png)
-
-## Future Development
-While the script is already at a point where I would consider it feature complete, there are a few things I think might be interesting to look into:
-
-* Display keyboard controls during playback
-* ~~Random channel selection~~ (Thanks blutack)
-* ~~Filter station IDs from track listing~~
-* ~~Desktop notifications on new track~~
-
-If you have an idea for a feature you'd like to see, let me know.
 
 ## About SomaFM
 ![somabanner](http://somafm.com/linktous/728x90sfm.jpg)
