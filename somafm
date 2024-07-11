@@ -431,17 +431,6 @@ else:
     # If there is string after -c, use it as device name
     chromecast_name = args.cast
 
-# Check for existing PID file
-if os.path.isfile(pid_file):
-    # There can be only one
-    print("SomaFM is already running!")
-    print("If you think this message is a mistake, delete the file: " + pid_file)
-    sys.exit()
-
-# If we get here, create one
-with open(pid_file, 'w') as pidfile:
-    pidfile.write(str(os.getpid()))
-
 # Enable log file
 if args.file:
     log_tracks = True
@@ -501,6 +490,16 @@ if args.stats:
     showStats()
     clean_exit()
 
+# Check for existing PID file
+if os.path.isfile(pid_file):
+    # There can be only one
+    print("SomaFM is already running!")
+    print("If you think this message is a mistake, delete the file: " + pid_file)
+    sys.exit()
+
+# If we get here, create one
+with open(pid_file, 'w') as pidfile:
+    pidfile.write(str(os.getpid()))
 
 # Open file for track logging (enable line buffering)
 if log_tracks:
