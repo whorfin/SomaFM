@@ -1,11 +1,13 @@
 # Version History
 
 ## July, 2024
+- Release as v1.73-whorfin
 - Remove support for all but mpv
 - support robust reconnects via playlist looping
 - set stream buffer to 4 seconds for fast start and quick recoveery
-- target pipewire for audio
+- target pipewire for audio, but allow bypassing the force-option
 - fix channel parsing to find and use highest bitrate AAC codec
+- channel information downloaded whenever it is needed, not written to disk
 
 ## January 5th, 2024
 - Fix station ID matching
