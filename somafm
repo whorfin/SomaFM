@@ -2,7 +2,8 @@
 # Python frontend for playing SomaFM with MPlayer
 # Written by Tom Nardi (MS3FGX@gmail.com)
 # Licensed under the GPLv3, see "COPYING"
-version = "1.73-whorfin"
+#   customized by whorfin
+version = "1.74-whorfin"
 
 import re
 import os
@@ -70,9 +71,6 @@ tmp_dir = tempfile.gettempdir()
 # Default image size for icons
 image_size = "xlimage"
 
-# PID file
-pid_file = tmp_dir + "/soma.pid"
-
 # Known station IDs
 station_ids = ["SomaFM", "Big Url", "Nerd Show"]
 
@@ -87,10 +85,8 @@ def signal_handler(sig, frame):
     subprocess.call(['killall', '-q', 'mpv'])
     clean_exit()
 
-# Do necessary cleanup when closing on good terms
+# Do any necessary cleanup when closing on good terms
 def clean_exit():
-    # Delete PID file
-    os.unlink(pid_file)
     sys.exit(0)
 
 # Download master list of channels
@@ -490,17 +486,6 @@ if args.stats:
     showStats()
     clean_exit()
 
-# Check for existing PID file
-if os.path.isfile(pid_file):
-    # There can be only one
-    print("SomaFM is already running!")
-    print("If you think this message is a mistake, delete the file: " + pid_file)
-    sys.exit()
-
-# If we get here, create one
-with open(pid_file, 'w') as pidfile:
-    pidfile.write(str(os.getpid()))
-
 # Open file for track logging (enable line buffering)
 if log_tracks:
     track_log = open(track_file, 'a', 1)
@@ -538,8 +523,5 @@ if log_tracks:
 # Print exit message
 print('\033[?25h')
 print(Fore.RESET + "Playback stopped after {:02}:{:02}:{:02}".format(int(hours), int(minutes), int(seconds)))
-
-# Delete PID file
-os.unlink(pid_file)
 
 # EOF
