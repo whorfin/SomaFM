@@ -81,8 +81,6 @@ def signal_handler(sig, frame):
     # Re-enable cursor if it was turned off
     print('\033[?25h')
     print(Fore.RED + "Force closing...")
-    # Kill any sneaky players
-    subprocess.call(['killall', '-q', 'mpv'])
     clean_exit()
 
 # Do any necessary cleanup when closing on good terms

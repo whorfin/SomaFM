@@ -1,7 +1,7 @@
 # Version History
 
 ## July, 2024
-- Release as v1.74-whorfin
+- Release as v1.75-whorfin
 - Remove support for all but mpv
 - support robust reconnects via playlist looping
 - set stream buffer to 4 seconds for fast start and quick recoveery
@@ -9,6 +9,7 @@
 - fix channel parsing to find and use highest bitrate AAC codec
 - channel information downloaded whenever it is needed, not written to disk
 - no more Highlander Rules (there can be more than one)
+- killall considered harmful
 
 ## January 5th, 2024
 - Fix station ID matching
