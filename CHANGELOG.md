@@ -1,7 +1,7 @@
 # Version History
 
 ## July, 2024
-- Release as v1.78-whorfin
+- Release as v1.80-whorfin
 - Remove support for all but mpv
 - support robust reconnects via playlist looping
 - set stream buffer to 4 seconds for fast start and quick recoveery
@@ -15,6 +15,7 @@
 - mpv can provide all the information we require - use it
 - use raw strings for SomaFM 1337 logos to avoid recent python bitching
 - improve fuzzy channel matching robustness
+- indicate current streaming server, and update when it changes
 
 ## January 5th, 2024
 - Fix station ID matching

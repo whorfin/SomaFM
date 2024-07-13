@@ -3,7 +3,7 @@
 # Written by Tom Nardi (MS3FGX@gmail.com)
 # Licensed under the GPLv3, see "COPYING"
 #   customized and extended with a focus on mpv by whorfin
-version = "1.79-whorfin"
+version = "1.80-whorfin"
 
 import re
 import os
@@ -239,6 +239,7 @@ def startStream(channel_name):
     if not args.nopw:
         # this seems to fix glitches and ticks occuring with pulse pipewire
         psa += ['--audio-device=alsa/pipewire']
+    psa += ['--network-timeout=30']
     psa.append(stream_link)
     try:
         playstream = subprocess.Popen(psa,
@@ -332,6 +333,10 @@ def streamInfo(playstream):
         if args.verbose:
             print(line)
 
+        # Printed at start, and when we loop through playlist because of server or network failure
+        if line.startswith(b'Playing'):
+            print(Fore.CYAN + "Current Stream Server: " + Fore.WHITE + line.decode().split(':', 1)[1].strip())
+
         if InfoPrinted is False:
             if line.startswith(b'icy-br'):
                 print(Fore.CYAN + "Bitrate: " + Fore.WHITE + line.decode().split(':', 1)[1].strip())
@@ -343,8 +348,6 @@ def streamInfo(playstream):
                 print(Fore.CYAN + "Codec: " + Fore.WHITE + line.decode().split(':', 1)[1].strip())
             if line.startswith(b'PLS'):
                 print(Fore.CYAN + "Playlist: " + Fore.WHITE + line.decode().split(':', 1)[1].strip())
-            if line.startswith(b'Playing'):
-                print(Fore.CYAN + "Initial Stream Server: " + Fore.WHITE + line.decode().split(':', 1)[1].strip())
 
             if line.startswith(b'File tags:'):
                 print(Fore.RED + "--------------------------")
