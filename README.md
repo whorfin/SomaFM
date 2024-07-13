@@ -53,8 +53,6 @@ While not required for basic usage, the following arguments are also available:
 #### --list
 Download the latest master list of SomaFM channels and display their descriptions.
 
-![channel_img](screenshots/channel_list.png)
-
 #### --stats
 This option shows the number of listeners for each currently online SomaFM channel, along with a total listener count.
 
