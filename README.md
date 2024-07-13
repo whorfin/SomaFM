@@ -29,7 +29,7 @@ At minimum, this program requires Python 3 versions of the following libraries:
 * [requests](https://3.python-requests.org/)
 
 ## Channel Selection
-Simply running `somafm` with no options will start streaming "Groove Salad." In the somewhat unlikely event you wanted to listen to something else, simply give it the channel name like so:
+Simply running `somafm` with no options will start streaming "Drone Zone." In the somewhat unlikely event you wanted to listen to something else, simply give it the channel name like so:
 
 ```console
 somafm "DEF CON Radio"
