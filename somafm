@@ -3,7 +3,7 @@
 # Written by Tom Nardi (MS3FGX@gmail.com)
 # Licensed under the GPLv3, see "COPYING"
 #   customized and extended with a focus on mpv by whorfin
-version = "1.77-whorfin"
+version = "1.78-whorfin"
 
 import re
 import os
@@ -418,23 +418,23 @@ if args.about:
     # I can't decide which one I like best, so let's use them all!
     randlogo = randrange(3)
     if randlogo == 0:
-        print(Fore.BLUE + "   _____                  " + Fore.GREEN + "     ________  ___")
-        print(Fore.BLUE + "  / ___/____  ____ ___  ____ _" + Fore.GREEN + "/ ____/  |/  /")
-        print(Fore.BLUE + "  \__ \/ __ \/ __ `__ \/ __ `" + Fore.GREEN + "/ /_  / /|_/ / ")
-        print(Fore.BLUE + " ___/ / /_/ / / / / / / /_/ " + Fore.GREEN + "/ __/ / /  / /  ")
-        print(Fore.BLUE + "/____/\____/_/ /_/ /_/\__,_" + Fore.GREEN + "/_/   /_/  /_/   ")
+        print(Fore.BLUE + r"   _____                  " + Fore.GREEN + r"     ________  ___")
+        print(Fore.BLUE + r"  / ___/____  ____ ___  ____ _" + Fore.GREEN + r"/ ____/  |/  /")
+        print(Fore.BLUE + r"  \__ \/ __ \/ __ `__ \/ __ `" + Fore.GREEN + r"/ /_  / /|_/ / ")
+        print(Fore.BLUE + r" ___/ / /_/ / / / / / / /_/ " + Fore.GREEN + r"/ __/ / /  / /  ")
+        print(Fore.BLUE + r"/____/\____/_/ /_/ /_/\__,_" + Fore.GREEN + r"/_/   /_/  /_/   ")
     elif randlogo == 1:
-        print(Fore.BLUE + " __" + Fore.GREEN + "                         ___")
-        print(Fore.BLUE + "/ _\ ___  _ __ ___   __ _  " + Fore.GREEN + "/ __\/\/\   ")
-        print(Fore.BLUE + "\ \ / _ \| '_ ` _ \ / _` |" + Fore.GREEN + "/ _\ /    \  ")
-        print(Fore.BLUE + "_\ \ (_) | | | | | | (_| " + Fore.GREEN + "/ /  / /\/\ \ ")
-        print(Fore.BLUE + "\__/\___/|_| |_| |_|\__,_" + Fore.GREEN + "\/   \/    \/ ")
+        print(Fore.BLUE + r" __" + Fore.GREEN + r"                         ___")
+        print(Fore.BLUE + r"/ _\ ___  _ __ ___   __ _  " + Fore.GREEN + r"/ __\/\/\   ")
+        print(Fore.BLUE + r"\ \ / _ \| '_ ` _ \ / _` |" + Fore.GREEN + r"/ _\ /    \  ")
+        print(Fore.BLUE + r"_\ \ (_) | | | | | | (_| " + Fore.GREEN + r"/ /  / /\/\ \ ")
+        print(Fore.BLUE + r"\__/\___/|_| |_| |_|\__,_" + Fore.GREEN + r"\/   \/    \/ ")
     elif randlogo == 2:
-        print(Fore.BLUE + " ______     ______     __    __     ______  " + Fore.GREEN + "   ______   __    __    ")
-        print(Fore.BLUE + "/\  ___\   /\  __ \   /\ '-./  \   /\  __ \ " + Fore.GREEN + "  /\  ___\ /\ '-./  \   ")
-        print(Fore.BLUE + "\ \___  \  \ \ \/\ \  \ \ \-./\ \  \ \  __ \ " + Fore.GREEN + " \ \  __\ \ \ \-./\ \  ")
-        print(Fore.BLUE + " \/\_____\  \ \_____\  \ \_\ \ \_\  \ \_\ \_\ " + Fore.GREEN + " \ \_\    \ \_\ \ \_\ ")
-        print(Fore.BLUE + "  \/_____/   \/_____/   \/_/  \/_/   \/_/\/_/ " + Fore.GREEN + "  \/_/     \/_/  \/_/ ")
+        print(Fore.BLUE + r" ______     ______     __    __     ______  " + Fore.GREEN + r"   ______   __    __    ")
+        print(Fore.BLUE + r"/\  ___\   /\  __ \   /\ '-./  \   /\  __ \ " + Fore.GREEN + r"  /\  ___\ /\ '-./  \   ")
+        print(Fore.BLUE + r"\ \___  \  \ \ \/\ \  \ \ \-./\ \  \ \  __ \ " + Fore.GREEN + r" \ \  __\ \ \ \-./\ \  ")
+        print(Fore.BLUE + r" \/\_____\  \ \_____\  \ \_\ \ \_\  \ \_\ \_\ " + Fore.GREEN + r" \ \_\    \ \_\ \ \_\ ")
+        print(Fore.BLUE + r"  \/_____/   \/_____/   \/_/  \/_/   \/_/\/_/ " + Fore.GREEN + r"  \/_/     \/_/  \/_/ ")
 
     print(Fore.WHITE + "")
     print("SomaFM is a listener-supported Internet-only radio station.")
