@@ -8,14 +8,11 @@ version = "1.76-whorfin"
 import re
 import os
 import sys
-import pickle
-import shutil
 import signal
 import requests
 import argparse
 import colorama
 import platform
-import tempfile
 import subprocess
 from random import randrange, choice
 from datetime import datetime
@@ -65,9 +62,6 @@ track_file = "/tmp/somafm_tracks.txt"
 # SomaFM channel list
 url = "https://somafm.com/channels.json"
 
-# Generate safe temporary directory on each OS
-tmp_dir = tempfile.gettempdir()
-
 # Default image size for icons
 image_size = "xlimage"
 
@@ -112,10 +106,17 @@ def downloadChannels():
     # Put channels in list
     channel_list = channel_raw.json()['channels']
 
+    # sort it
+    def channelID(chan):
+        return chan['id'].lower()
+
+    channel_list.sort(key=channelID) 
+
     print("OK")
 
 # Loop through channels and print their descriptions
 def listChannels():
+
     # Find longest channel name
     channel_length = max(len(channel['title']) for channel in channel_list)
 

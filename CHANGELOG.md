@@ -11,6 +11,7 @@
 - no more Highlander Rules (there can be more than one)
 - killall considered harmful
 - change the default channel to be correct - Drone Zone
+- sort the channel list
 
 ## January 5th, 2024
 - Fix station ID matching
