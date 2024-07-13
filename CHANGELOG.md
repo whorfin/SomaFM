@@ -14,6 +14,7 @@
 - sort the channel list
 - mpv can provide all the information we require - use it
 - use raw strings for SomaFM 1337 logos to avoid recent python bitching
+- improve fuzzy channel matching robustness
 
 ## January 5th, 2024
 - Fix station ID matching
