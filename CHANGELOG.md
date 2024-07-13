@@ -1,7 +1,7 @@
 # Version History
 
 ## July, 2024
-- Release as v1.76-whorfin
+- Release as v1.77-whorfin
 - Remove support for all but mpv
 - support robust reconnects via playlist looping
 - set stream buffer to 4 seconds for fast start and quick recoveery
@@ -12,6 +12,7 @@
 - killall considered harmful
 - change the default channel to be correct - Drone Zone
 - sort the channel list
+- mpv can provide all the information we require - use it
 
 ## January 5th, 2024
 - Fix station ID matching

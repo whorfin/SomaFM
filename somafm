@@ -2,8 +2,8 @@
 # Python frontend for playing SomaFM with MPlayer
 # Written by Tom Nardi (MS3FGX@gmail.com)
 # Licensed under the GPLv3, see "COPYING"
-#   customized by whorfin
-version = "1.76-whorfin"
+#   customized and extended with a focus on mpv by whorfin
+version = "1.77-whorfin"
 
 import re
 import os
@@ -226,12 +226,14 @@ def startStream(channel_name):
     psa += ['--no-video',
             '--loop-playlist=force',
             '--cache=yes',
-            '--cache-secs={}'.format(cacheSecs)
+            '--cache-secs={}'.format(cacheSecs),
                 # these settings only change start behavior it seems
                 #
                 #'--cache-pause-wait={}'.format(cacheSecs),
                 #'--cache-pause=yes',
                 #'--cache-pause-initial=yes',
+            # dump icy- metadata and codec info when starting
+            '--term-playing-msg=${metadata}Codec: ${audio-codec}'
             ]
     if not args.nopw:
         # this seems to fix glitches and ticks occuring with pulse pipewire
@@ -330,46 +332,24 @@ def streamInfo(playstream):
             print(line)
 
         if InfoPrinted is False:
-            # mpv
+            if line.startswith(b'icy-br'):
+                print(Fore.CYAN + "Bitrate: " + Fore.WHITE + line.decode().split(':', 1)[1].strip())
+            if line.startswith(b'icy-name'):
+                print(Fore.CYAN + "Channel: " + Fore.WHITE + line.decode().split(':', 1)[1].strip())
+            if line.startswith(b'icy-genre'):
+                print(Fore.CYAN + "Genre: " + Fore.WHITE + line.decode().split(':', 1)[1].strip())
+            if line.startswith(b'Codec'):
+                print(Fore.CYAN + "Codec: " + Fore.WHITE + line.decode().split(':', 1)[1].strip())
+
             if line.startswith(b'File tags:'):
-                # mpv doesn't give us much info, so have to pull channel name from args
-                print(Fore.CYAN + "Channel: " + Fore.WHITE + channelGet('NAME', args.channel))
                 print(Fore.RED + "--------------------------")
                 print(Fore.WHITE + "Press Crtl+C to Quit", end="")
                 InfoPrinted = True
 
-        # Save track to file
-        if line.startswith(b'Capturing') and CaptureEnable:
-            # Print save icon next to track, flush output
-            print(" " + u"\U0001F4BE", end="")
-            sys.stdout.flush()
-
-            # Open favorites file for append
-            fav = open("favorites.txt", 'a')
-
-            # Write out current track
-            fav.write(track + "\n")
-
-            # Close file
-            fav.close()
-            
-            # Set flag to false so this only runs once
-            CaptureEnable = False
-
-
         # Updates on every new track
         if line.startswith(b'ICY Info:') or line.startswith(b'ICY-META:') or line.startswith(b' icy-title:'):
-            # Reset capture flag
-            CaptureEnable = True
-
-            # mpv format is different
             if line.startswith(b' icy-title:'):
                 track = line.decode().split(':', 1)[1].strip()
-            else:
-                # Break out artist - track data
-                info = line.decode().split(':', 1)[1].strip()
-                match = re.search(r"StreamTitle='(.*)';StreamUrl=", info)
-                track = match.group(1)
 
             # Print date before track
             print("")
