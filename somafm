@@ -233,7 +233,8 @@ def startStream(channel_name):
                 #'--cache-pause=yes',
                 #'--cache-pause-initial=yes',
             # dump icy- metadata and codec info when starting
-            '--term-playing-msg=${metadata}Codec: ${audio-codec}'
+            #   ${playlist} shows playlist contents [with carriage returns, along with which is active], ${media-title} is name of playlist
+            '--term-playing-msg=PLS: ${media-title}\n${metadata}\nCodec: ${audio-codec}'
             ]
     if not args.nopw:
         # this seems to fix glitches and ticks occuring with pulse pipewire
@@ -340,6 +341,10 @@ def streamInfo(playstream):
                 print(Fore.CYAN + "Genre: " + Fore.WHITE + line.decode().split(':', 1)[1].strip())
             if line.startswith(b'Codec'):
                 print(Fore.CYAN + "Codec: " + Fore.WHITE + line.decode().split(':', 1)[1].strip())
+            if line.startswith(b'PLS'):
+                print(Fore.CYAN + "Playlist: " + Fore.WHITE + line.decode().split(':', 1)[1].strip())
+            if line.startswith(b'Playing'):
+                print(Fore.CYAN + "Initial Stream Server: " + Fore.WHITE + line.decode().split(':', 1)[1].strip())
 
             if line.startswith(b'File tags:'):
                 print(Fore.RED + "--------------------------")
