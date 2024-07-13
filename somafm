@@ -335,7 +335,7 @@ def streamInfo(playstream):
 
         # Printed at start, and when we loop through playlist because of server or network failure
         if line.startswith(b'Playing'):
-            print(Fore.CYAN + "Current Stream Server: " + Fore.WHITE + line.decode().split(':', 1)[1].strip())
+            print(Fore.CYAN + "Stream Server: " + Fore.WHITE + line.decode().split(':', 1)[1].strip())
 
         if InfoPrinted is False:
             if line.startswith(b'icy-br'):
