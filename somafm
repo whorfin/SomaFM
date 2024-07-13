@@ -17,7 +17,6 @@ import subprocess
 from random import randrange, choice
 from datetime import datetime
 from colorama import Fore, Style
-from collections import OrderedDict
 
 # Optional Chromecast support, don't error if can't import
 try:
@@ -107,10 +106,7 @@ def downloadChannels():
     channel_list = channel_raw.json()['channels']
 
     # sort it
-    def channelID(chan):
-        return chan['id'].lower()
-
-    channel_list.sort(key=channelID) 
+    channel_list.sort(key=lambda x: x['id'].lower())
 
     print("OK")
 
@@ -132,17 +128,17 @@ def showStats():
     # To count total listeners
     listeners = 0
 
-    # Dictionary for sorting
-    channel_dict = {}
+    # mini list for listener sorting
+    listener_list = []
 
-    # Put channels and listener counts into dictionary
+    # Put channels and listener counts into list
     for channel in channel_list:
-        channel_dict[channel['title']] = int(channel['listeners'])
+        listener_list.append([channel['title'], int(channel['listeners'])])
 
     # Sort and print results
-    sorted_list = OrderedDict(sorted(channel_dict.items(), key=lambda x: x[1], reverse=True))
+    listener_list.sort(key=lambda x: x[1], reverse=True)
     print(Fore.RED + "------------------------------")
-    for key, val in sorted_list.items():
+    for key, val in listener_list:
         # Total up listeners
         listeners = listeners + val
         print(Fore.GREEN + '{:>4}'.format(val) + Fore.BLUE, end=' : ')
