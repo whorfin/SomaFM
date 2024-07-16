@@ -3,7 +3,7 @@
 # Written by Tom Nardi (MS3FGX@gmail.com)
 # Licensed under the GPLv3, see "COPYING"
 #   customized and extended with a focus on mpv by whorfin
-version = "1.81-whorfin"
+version = "1.82-whorfin"
 
 import re
 import os
@@ -78,6 +78,7 @@ def signal_handler(sig, frame):
 
 # Do any necessary cleanup when closing on good terms
 def clean_exit():
+    playstream.terminate()  # just in case, and especially w/ audio error loop
     sys.exit(0)
 
 # Download master list of channels
@@ -240,6 +241,8 @@ def startStream(channel_name):
     # default of alsa/pipewire fixes glitches and ticks compared to pulse pipewire in some scenarios
     psa += ["--audio-device="+args.audio]
     psa.append(stream_link)
+
+    global playstream
     try:
         playstream = subprocess.Popen(psa,
                     stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False)
@@ -291,6 +294,7 @@ def startCast(channel_name):
         print(Fore.RED + "Cast sync not supported on mpv.")
         clean_exit()
 
+        global playstream
         try:
             # whorfin: sarg1/2 aren't there any more, this will fail; fix up if i ever care about chromecast
             playstream = subprocess.Popen(['mpv', player['sarg1'], player['sarg2'], stream_url],
@@ -383,6 +387,12 @@ def streamInfo(playstream):
                 # Run custom notification command if enabled
                 if custom_notifications:
                     subprocess.run([notification_cmd, track], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False)
+
+        # because we are looping the playlist, mpv unfortunately doesn't quit if we gave it
+        # a bad audio device, we have to detect this
+        if line.startswith(b'[ao] Failed to initialize audio driver'):
+            print(Fore.RED + "ERROR: failed to initialize audio drive " + args.audio)
+            clean_exit()
 
 # Execution below this line
 #-----------------------------------------------------------------------#

@@ -1,7 +1,7 @@
 # Version History
 
 ## July, 2024
-- Release as v1.81-whorfin
+- Release as v1.82-whorfin
 - Remove support for all but mpv
 - support robust reconnects via playlist looping
 - set stream buffer to 4 seconds for fast start and quick recoveery
@@ -17,6 +17,7 @@
 - improve fuzzy channel matching robustness
 - indicate current streaming server, and update when it changes
 - handle audio output more flexibly, a gift for non-pipewire peeps
+- detect when there is an audio output driver, notify user, and break out of playlist loop
 
 ## January 5th, 2024
 - Fix station ID matching
