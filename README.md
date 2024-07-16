@@ -13,7 +13,7 @@ The main features I've added to mpv launch are robust reconnection by leveraging
 Importantly, I've also fixed channel stream extraction parsing to always use the highest quality codec at the highest bitrate; previous logic was dependent on json ordering and assumed the first entry was the best, which incorrectly resulted in mp3.
 Desktop notification was yeeted along with channel icon download, and the channel list is downloaded directory every launch, and not written to a file.  Caching this caused problems when channels were updated.
 
-If you aren't me and want to try this, try the "--nopw" flag if you aren't rocking pipewire.
+If you aren't me and want to try this, try the "--audio auto" flag if you aren't rocking pipewire.
 
 ## Installation
 Starting with version 1.5, the stable version of this program is available on PyPi and can be installed with the following command:
@@ -60,9 +60,10 @@ This option shows the number of listeners for each currently online SomaFM chann
 #### --cast
 If you have the [pychromecast](https://github.com/balloob/pychromecast) library installed, this option will start playback of the given SomaFM channel on the given Chromecast device. If no device name is given, the default specified by the `chromecast_name` variable will be used.
 
-#### --nopw
+#### --audio
 I love pipewire, and by default enable it without requiring config shenanigans.
-If you have yet to embrace the future, you can use this flag to skip this setup.
+If you have yet to embrace the future, you can use this flag to chose your weapon.
+`auto` will give a go at auto-detecting based on your OS defaults, while `help` will probe and list available devices.
 
 ## Supported Player
 This program is simply a front-end, playback requires mpv to be installed:
