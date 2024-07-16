@@ -391,7 +391,7 @@ def streamInfo(playstream):
         # because we are looping the playlist, mpv unfortunately doesn't quit if we gave it
         # a bad audio device, we have to detect this
         if line.startswith(b'[ao] Failed to initialize audio driver'):
-            print(Fore.RED + "ERROR: failed to initialize audio drive " + args.audio)
+            print(Fore.RED + "ERROR: failed to initialize audio driver " + args.audio)
             clean_exit()
 
 # Execution below this line
