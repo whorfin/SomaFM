@@ -13,7 +13,7 @@ The main features I've added to mpv launch are robust reconnection by leveraging
 Importantly, I've also fixed channel stream extraction parsing to always use the highest quality codec at the highest bitrate; previous logic was dependent on json ordering and assumed the first entry was the best, which incorrectly resulted in mp3.
 Desktop notification was yeeted along with channel icon download, and the channel list is downloaded directory every launch, and not written to a file.  Caching this caused problems when channels were updated.
 
-If you aren't me and want to try this, try the "--audio auto" flag if you aren't rocking pipewire.
+If you aren't me and want to try this, try the `--audio auto` flag if you aren't rocking pipewire.
 
 ## Installation
 Starting with version 1.5, the stable version of this program is available on PyPi and can be installed with the following command:
