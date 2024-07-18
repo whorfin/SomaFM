@@ -17,7 +17,7 @@
 - improve fuzzy channel matching robustness
 - indicate current streaming server, and update when it changes
 - handle audio output more flexibly, a gift for non-pipewire peeps
-- detect when there is an audio output driver, notify user, and break out of playlist loop
+- detect when there is an audio output driver error, notify user, and break out of playlist loop
 
 ## January 5th, 2024
 - Fix station ID matching
