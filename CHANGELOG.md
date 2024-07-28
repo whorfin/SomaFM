@@ -1,7 +1,7 @@
 # Version History
 
 ## July, 2024
-- Release as v1.82-whorfin
+- Release as v1.83-whorfin
 - Remove support for all but mpv
 - support robust reconnects via playlist looping
 - set stream buffer to 4 seconds for fast start and quick recoveery
