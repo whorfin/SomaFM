@@ -3,7 +3,7 @@
 # Written by Tom Nardi (MS3FGX@gmail.com)
 # Licensed under the GPLv3, see "COPYING"
 #   customized and extended with a focus on mpv by whorfin
-version = "1.83-whorfin"
+version = "1.84-whorfin"
 
 import re
 import os
@@ -78,12 +78,13 @@ def signal_handler(sig, frame):
 
 # Do any necessary cleanup when closing on good terms
 def clean_exit():
-    playstream.terminate()  # just in case, and especially w/ audio error loop
+    if (playstream is not None):
+        playstream.terminate()  # just in case, and especially w/ audio error loop
     sys.exit(0)
 
 # Download master list of channels
 def downloadChannels():
-    # Make global so other functions can acess it
+    # Make global so other functions can access it
     global channel_list
 
     # Let user know we're downloading
@@ -185,10 +186,21 @@ def channelGet(request, channel_name):
             elif request == "ICON_URL":
                 return(channel[image_size])
             elif request == "URL":
-                # Download PLS
-                url = channelGet("PLS", channel_name)
-                pls_file = requests.get(url)
+                # parse this out directly, we only want one format; mp3 in this case sadly
+                url = None
+                fmt = None
+                for pls in channel['playlists']:
+                    #print(pls)
+                    if pls['quality'] == "highest":
+                        fmt = pls['format']
+                        if fmt == "mp3":
+                            url = pls['url']
+                            break
+                if url == None:
+                    print(Fore.RED + "No 'highest' quality MP3 stream found, bailing")
+                    clean_exit()
 
+                pls_file = requests.get(url)
                 # Split out file URL
                 for line in pls_file.text.splitlines():
                     if "File1" in line:
@@ -242,7 +254,6 @@ def startStream(channel_name):
     psa += ["--audio-device="+args.audio]
     psa.append(stream_link)
 
-    global playstream
     try:
         playstream = subprocess.Popen(psa,
                     stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False)
@@ -275,6 +286,8 @@ def startCast(channel_name):
         clean_exit()
 
     # Attempt to start stream
+    # https://developers.google.com/cast/docs/media
+    # https://mimetype.io/audio/aac
     try:
         cast.wait()
         stream = cast.media_controller
@@ -294,7 +307,6 @@ def startCast(channel_name):
         print(Fore.RED + "Cast sync not supported on mpv.")
         clean_exit()
 
-        global playstream
         try:
             # whorfin: sarg1/2 aren't there any more, this will fail; fix up if i ever care about chromecast
             playstream = subprocess.Popen(['mpv', player['sarg1'], player['sarg2'], stream_url],
@@ -396,6 +408,9 @@ def streamInfo(playstream):
 
 # Execution below this line
 #-----------------------------------------------------------------------#
+# global process handle
+playstream = None
+
 # Load signal handler
 signal.signal(signal.SIGINT, signal_handler)
 
