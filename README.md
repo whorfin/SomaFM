@@ -65,6 +65,8 @@ If you have the [pychromecast](https://github.com/balloob/pychromecast) library 
 
 AAC quality is pushed, the playing channel is kept updated, and exiting will kick the Chromecast device back to the "ambient" screen if enabled.
 
+Tested on Chromecast 3rd Gen [NC2-6A5].
+
 #### --audio
 I love `pipewire`, and by default enable it without requiring config shenanigans.
 If you have yet to embrace the future, you can use this flag to chose your weapon.
