@@ -497,7 +497,8 @@ if args.about:
     clean_exit()
 
 # declare the device
-print("Using audio device: " + args.audio)
+if not args.cast:
+    print("Using audio device: " + args.audio)
 
 # get channel list
 downloadChannels()
