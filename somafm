@@ -3,7 +3,7 @@
 # Written by Tom Nardi (MS3FGX@gmail.com)
 # Licensed under the GPLv3, see "COPYING"
 #   customized and extended with a focus on mpv by whorfin
-version = "1.84-whorfin"
+version = "1.85-whorfin"
 
 import re
 import os
@@ -32,10 +32,7 @@ except ImportError:
 default_chan = "Drone Zone"
 
 # Name of Chromecast device
-chromecast_name = "The Office"
-
-# Show track names in terminal while casting
-cast_sync = True
+chromecast_name = "The Sound Pool"
 
 # Highlight station IDs in yellow
 station_highlights = True
@@ -80,6 +77,10 @@ def signal_handler(sig, frame):
 def clean_exit():
     if (playstream is not None):
         playstream.terminate()  # just in case, and especially w/ audio error loop
+    if (stream is not None):
+        # stop playback and shut down cast app, back to ambient mode if enabled
+        stream.stop()
+        cast.quit_app()
     sys.exit(0)
 
 # Download master list of channels
@@ -186,18 +187,18 @@ def channelGet(request, channel_name):
             elif request == "ICON_URL":
                 return(channel[image_size])
             elif request == "URL":
-                # parse this out directly, we only want one format; mp3 in this case sadly
+                # parse this out directly, we only want one format; AAC FTW
                 url = None
                 fmt = None
                 for pls in channel['playlists']:
                     #print(pls)
                     if pls['quality'] == "highest":
                         fmt = pls['format']
-                        if fmt == "mp3":
+                        if fmt == "aac":
                             url = pls['url']
                             break
                 if url == None:
-                    print(Fore.RED + "No 'highest' quality MP3 stream found, bailing")
+                    print(Fore.RED + "No 'highest' quality AAC stream found, bailing")
                     clean_exit()
 
                 pls_file = requests.get(url)
@@ -254,6 +255,7 @@ def startStream(channel_name):
     psa += ["--audio-device="+args.audio]
     psa.append(stream_link)
 
+    global playstream
     try:
         playstream = subprocess.Popen(psa,
                     stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False)
@@ -272,26 +274,27 @@ def startCast(channel_name):
     # Populate stream variables
     stream_name = channelGet('NAME', channel_name)
     stream_url = channelGet('URL', channel_name)
+    icon_url = channelGet('ICON_URL', channel_name)
 
     # Now try to communicate with CC
     print("Connecting to", chromecast_name, end='...')
     sys.stdout.flush()
-    try:
-        chromecasts = pychromecast.get_chromecasts()
-        cast = next(cc for cc in chromecasts if cc.device.friendly_name == chromecast_name)
-    except:
+    chromecasts, browser = pychromecast.get_listed_chromecasts(friendly_names=[chromecast_name])
+    if not chromecasts:
         print(Fore.RED + "FAILED")
         print("")
-        print(Fore.WHITE + "Double check the device name and try again.")
+        print(Fore.WHITE + f'No chromecast with name "{chromecast_name}" discovered')
         clean_exit()
+    global cast
+    cast = chromecasts[0]
 
     # Attempt to start stream
-    # https://developers.google.com/cast/docs/media
-    # https://mimetype.io/audio/aac
+    global stream
     try:
+        # Start socket client's worker thread and wait for initial status update
         cast.wait()
         stream = cast.media_controller
-        stream.play_media(stream_url, 'audio/mp3', stream_name, channelGet('ICON_URL', channel_name))
+        stream.play_media(stream_url, 'audio/aac', stream_name, icon_url)
         stream.block_until_active()
     except:
         print(Fore.RED + "FAILED")
@@ -300,30 +303,32 @@ def startCast(channel_name):
         clean_exit()
     print("OK")
 
+    browser.stop_discovery()
+
     # Start player with no audio to get track info
-    if cast_sync:
-        # Playing without audio doesn't seem to work in mpv, so bail out for now
-        #   which is fine since i haven't tested mpv with chromecast
-        print(Fore.RED + "Cast sync not supported on mpv.")
+    psa = ['mpv']
+    psa += ['--no-video',
+            # dump icy- metadata and codec info when starting
+            #   ${playlist} shows playlist contents [with carriage returns, along with which is active], ${media-title} is name of playlist
+            '--term-playing-msg=${metadata}\nCodec: ${audio-codec}'
+            ]
+    psa += ['--network-timeout=30']
+    psa += ["--audio-device=null"]  # no audio
+    psa.append(stream_url)
+
+    global playstream
+    try:
+        playstream = subprocess.Popen(psa,
+                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False)
+    except:
+        print(Fore.RED + "Track Sync Failed!")
         clean_exit()
 
-        try:
-            # whorfin: sarg1/2 aren't there any more, this will fail; fix up if i ever care about chromecast
-            playstream = subprocess.Popen(['mpv', player['sarg1'], player['sarg2'], stream_url],
-                         stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False)
-        except:
-            print(Fore.RED + "Track Sync Failed!")
-            clean_exit()
+    # Hand off to info display
+    streamInfo(playstream)
 
-        # Hand off to info display
-        streamInfo(playstream)
-
-        # If we get here, then player has stopped and so should Cast
-        cast.quit_app()
-    else:
-        print(Fore.RED + "--------------------------")
-        print(Fore.WHITE + "Now playing: " + Fore.CYAN + stream_name)
-        clean_exit()
+    # If we get here, then player has stopped and so should Cast
+    cast.quit_app()
 
 # Determine if track is a Station ID
 def stationID(track):
@@ -410,6 +415,9 @@ def streamInfo(playstream):
 #-----------------------------------------------------------------------#
 # global process handle
 playstream = None
+# global cast and stream handles if active
+cast = None
+stream = None
 
 # Load signal handler
 signal.signal(signal.SIGINT, signal_handler)

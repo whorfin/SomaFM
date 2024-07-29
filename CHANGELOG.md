@@ -1,7 +1,7 @@
 # Version History
 
 ## July, 2024
-- Release as v1.84-whorfin
+- Release as v1.85-whorfin
 - Remove support for all but mpv
 - support robust reconnects via playlist looping
 - set stream buffer to 4 seconds for fast start and quick recoveery
@@ -18,7 +18,7 @@
 - indicate current streaming server, and update when it changes
 - handle audio output more flexibly, a gift for non-pipewire peeps
 - detect when there is an audio output driver error, notify user, and break out of playlist loop
-- clumsy attempt at making chromecast work; it might, though mp3-only
+- make chromecast work - discovery and shutdown are proper, and AAC playback is supported
 
 ## January 5th, 2024
 - Fix station ID matching

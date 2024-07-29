@@ -2,13 +2,15 @@
 # Python SomaFM Player
 This simple player for [SomaFM](https://somafm.com/) keeps the distractions, and system resource utilization, to an absolute minimum. The look of this player was inspired equally by the excellent SomaFM terminal interfaces which were already available, and the 80's hacker aesthetic that one may find nostalgic for when listening to a Shoutcast stream at 2AM.
 
-As of the current version, the player supports completely unnecessary features like Chromecast support at no extra charge. Known to work on Linux (including Raspberry Pi, Chrome OS's Crostini and Chromium OS Universal Chroot Environment[^crouton]), Mac OS, and even Windows.
+Known to work on Linux (including Raspberry Pi, Chrome OS's Crostini and Chromium OS Universal Chroot Environment[^crouton]), Mac OS, and even Windows.  As an added bonus, high quality Chromecast audio casting is supported.
 
 [^crouton]: For a simple audio-only installation without the need for any X11 or desktop shenanigans:
     - Download [crouton](https://github.com/dnschneid/crouton)
     - `$ sudo sh crouton -r focal -t audio`
     - `$ sudo enter-chroot`
     - `$ sudo apt install mpv python3-requests python3-colorama`
+    - ...and if you want to use Chromecast, also do this:
+    - `$ sudo apt install python3-pychromecast`
 
 For an up-to-date list of what's new, check the [Changelog](CHANGELOG.md)
 
@@ -59,9 +61,9 @@ Download the latest master list of SomaFM channels and display their description
 This option shows the number of listeners for each currently online SomaFM channel, along with a total listener count.
 
 #### --cast
-If you have the [pychromecast](https://github.com/balloob/pychromecast) library installed, this option might[^2] start playback of the given SomaFM channel on the given Chromecast device. If no device name is given, the default specified by the `chromecast_name` variable will be used.
+If you have the [pychromecast](https://github.com/balloob/pychromecast) library installed, this option starts playback of the given SomaFM channel on the given Chromecast device. If no device name is given, the default specified by the `chromecast_name` variable will be used.
 
-[^2]: I have yet to test this against my `mpv` changes.  Need to acquire both a Chromecast device and suitable motivation.  The official Google docs are rather unclear on how to do audio-only formats, and the general intertubes behaviors point towards MP3 as the best supported option.  The whole point of my changes here are to improve audio quality, therefore I've not proceeded.
+AAC quality is pushed, the playing channel is kept updated, and exiting will kick the Chromecast device back to the "ambient" screen if enabled.
 
 #### --audio
 I love `pipewire`, and by default enable it without requiring config shenanigans.
