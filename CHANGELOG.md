@@ -1,7 +1,7 @@
 # Version History
 
 ## July, 2024
-- Release as v1.85-whorfin
+- Release as v1.86-whorfin
 - Remove support for all but mpv
 - support robust reconnects via playlist looping
 - set stream buffer to 4 seconds for fast start and quick recoveery
@@ -19,6 +19,7 @@
 - handle audio output more flexibly, a gift for non-pipewire peeps
 - detect when there is an audio output driver error, notify user, and break out of playlist loop
 - make chromecast work - discovery and shutdown are proper, and AAC playback is supported
+- simplify main loop, reduce CPU load even more
 
 ## January 5th, 2024
 - Fix station ID matching

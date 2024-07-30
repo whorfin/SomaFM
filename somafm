@@ -3,7 +3,7 @@
 # Written by Tom Nardi (MS3FGX@gmail.com)
 # Licensed under the GPLv3, see "COPYING"
 #   customized and extended with a focus on mpv by whorfin
-version = "1.85-whorfin"
+version = "1.86-whorfin"
 
 import re
 import os
@@ -33,9 +33,6 @@ default_chan = "Drone Zone"
 
 # Name of Chromecast device
 chromecast_name = "The Sound Pool"
-
-# Highlight station IDs in yellow
-station_highlights = True
 
 # Experimental Options:
 #-----------------------------------------------------------------------
@@ -253,7 +250,12 @@ def startStream(channel_name):
     psa += ['--network-timeout=30']
     # default of alsa/pipewire fixes glitches and ticks compared to pulse pipewire in some scenarios
     psa += ["--audio-device="+args.audio]
+
+    # don't output playing timecode; further reduces compute for parsing
+    psa += ["--quiet"]
+
     psa.append(stream_link)
+
 
     global playstream
     try:
@@ -314,6 +316,10 @@ def startCast(channel_name):
             ]
     psa += ['--network-timeout=30']
     psa += ["--audio-device=null"]  # no audio
+
+    # don't output playing timecode; further reduces compute for parsing
+    psa += ["--quiet"]
+
     psa.append(stream_url)
 
     global playstream
@@ -368,34 +374,28 @@ def streamInfo(playstream):
                 print(Fore.CYAN + "Codec: " + Fore.WHITE + line.decode().split(':', 1)[1].strip())
             if line.startswith(b'PLS'):
                 print(Fore.CYAN + "Playlist: " + Fore.WHITE + line.decode().split(':', 1)[1].strip())
-
             if line.startswith(b'File tags:'):
                 print(Fore.RED + "--------------------------")
                 print(Fore.WHITE + "Press Crtl+C to Quit", end="")
                 InfoPrinted = True
 
         # Updates on every new track
-        if line.startswith(b'ICY Info:') or line.startswith(b'ICY-META:') or line.startswith(b' icy-title:'):
-            if line.startswith(b' icy-title:'):
-                track = line.decode().split(':', 1)[1].strip()
+        if line.startswith(b' icy-title:'):
+            track = line.decode().split(':', 1)[1].strip()
 
             # Print date before track
             print("")
             print(Fore.BLUE + datetime.now().strftime("%H:%M:%S"), end=' | ')
 
-            # Check if track is a station ID once, save value to variable
+            # Highlight station IDs
             IDStatus = stationID(track)
-
-            # Highlight station IDs in yellow
-            if station_highlights and IDStatus:
+            if IDStatus:
                 print(Fore.YELLOW + track, end="")
             else:
                 print(Fore.GREEN + track, end="")
-
-            # Flush line so far
             sys.stdout.flush()
 
-            # Before doing anything further, make sure it's not a Station ID
+            # Don't do logging/custom notifications to station ids
             if not IDStatus:
                 # Log track to file if enabled
                 if log_tracks:
