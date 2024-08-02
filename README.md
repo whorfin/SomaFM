@@ -2,7 +2,7 @@
 # Python SomaFM Player
 This simple player for [SomaFM](https://somafm.com/) keeps the distractions, and system resource utilization, to an absolute minimum. The look of this player was inspired equally by the excellent SomaFM terminal interfaces which were already available, and the 80's hacker aesthetic that one may find nostalgic for when listening to a Shoutcast stream at 2AM.
 
-Known to work on Linux (including Raspberry Pi, Chrome OS's Crostini and Chromium OS Universal Chroot Environment[^crouton]), Mac OS, and even Windows.  As an added bonus, high quality Chromecast audio casting is supported.
+Known to work on Linux (including Raspberry Pi, Chrome OS's Crostini and Chromium OS Universal Chroot Environment[^crouton]), Mac OS, and even Windows[^windows].  As an added bonus, high quality Chromecast audio casting is supported.
 
 [^crouton]: For a simple audio-only installation without the need for any X11 or desktop shenanigans:
     - Download [crouton](https://github.com/dnschneid/crouton)
@@ -11,6 +11,12 @@ Known to work on Linux (including Raspberry Pi, Chrome OS's Crostini and Chromiu
     - `$ sudo apt install mpv python3-requests python3-colorama`
     - ...and if you want to use Chromecast, also do this:
     - `$ sudo apt install python3-pychromecast`
+
+[^windows]: You need to make sure `mpv.com` is resolvable through the system `PATH`.
+In the same cmd terminal where you run `somafm`, try to run `mpv`. You
+should get the help banner.  Here's how this manages to work:  because
+windows, `mpv.exe` is a GUI-only program with no stdio.  `mpv.com` uses
+[shenanigans](https://github.com/mpv-player/mpv/wiki/FAQ#on-windows-why-does-mpvexe-not-attach-to-the-console-and-what-does-mpvcom-do) to wrap `mpv.exe` and provide standard input and output.  Because windows will prefer `.com` to `.exe` by default, a `Popen()` of `mpv` launches `mpv.com` and `somafm` is able to communicate with it over stdio.
 
 For an up-to-date list of what's new, check the [Changelog](CHANGELOG.md)
 
