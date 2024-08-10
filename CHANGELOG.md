@@ -1,8 +1,12 @@
 # Version History
 
+## August, 2024
+- Release as v1.87-whorfin
+- disable homedir loading of `mpv` config
+
 ## July, 2024
 - Release as v1.86-whorfin
-- Remove support for all but mpv
+- Remove support for all but `mpv`
 - support robust reconnects via playlist looping
 - set stream buffer to 4 seconds for fast start and quick recoveery
 - target pipewire for audio, but allow bypassing the force-option
