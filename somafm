@@ -378,7 +378,7 @@ def streamInfo(playstream):
                 print(Fore.CYAN + "Playlist: " + Fore.WHITE + line.decode().split(':', 1)[1].strip())
             if line.startswith(b'File tags:'):
                 print(Fore.RED + "--------------------------")
-                print(Fore.WHITE + "Press Crtl+C to Quit", end="")
+                print(Fore.WHITE + "Press Ctrl+C to Quit", end="")
                 InfoPrinted = True
 
         # Updates on every new track
