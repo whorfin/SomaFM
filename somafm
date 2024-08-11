@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Python frontend for playing SomaFM with MPlayer
+# Python frontend for playing SomaFM with mpv
 # Written by Tom Nardi (MS3FGX@gmail.com)
 # Licensed under the GPLv3, see "COPYING"
 #   customized and extended with a focus on mpv by whorfin
