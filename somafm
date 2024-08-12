@@ -312,7 +312,6 @@ def startCast(channel_name):
     # Start player with no audio to get track info
     psa = ['mpv']
     psa += ['--no-video',
-            '--no-config',
             # dump icy- metadata and codec info when starting
             #   ${playlist} shows playlist contents [with carriage returns, along with which is active], ${media-title} is name of playlist
             '--term-playing-msg=${metadata}\nCodec: ${audio-codec}'
@@ -451,7 +450,7 @@ if args.file:
 
 # check if we were trying to list audio devices
 if args.audio == "help":
-    devices = subprocess.run(['mpv', '--no-config', '--audio-device=help'], stdout=subprocess.PIPE).stdout.decode('utf-8')
+    devices = subprocess.run(['mpv', '--audio-device=help'], stdout=subprocess.PIPE).stdout.decode('utf-8')
     print(devices)
     clean_exit()
 
