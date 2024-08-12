@@ -1,8 +1,7 @@
 # Version History
 
 ## August, 2024
-- Release as v1.87-whorfin
-- disable homedir loading of `mpv` config
+- Release as v1.88-whorfin
 
 ## July, 2024
 - Release as v1.86-whorfin
