@@ -3,20 +3,28 @@
 # Written by Tom Nardi (MS3FGX@gmail.com)
 # Licensed under the GPLv3, see "COPYING"
 #   customized and extended with a focus on mpv by whorfin
-version = "1.88-whorfin"
+version = "2.00"
 
 import re
 import os
 import sys
+import socket
 import signal
 import requests
 import argparse
 import colorama
-import platform
 import subprocess
+import time
 from random import randrange, choice
 from datetime import datetime
 from colorama import Fore, Style
+
+from threading import Thread, Lock
+import tty,termios   # sys and os already imported
+import uuid
+import json
+
+from enum import Enum
 
 # Optional Chromecast support, don't error if can't import
 try:
@@ -61,23 +69,99 @@ image_size = "xlimage"
 # Known station IDs
 station_ids = ["SomaFM", "Big Url", "Nerd Show"]
 
-# Define functions
-#-----------------------------------------------------------------------#
+## set up needed globals
+sock = None
+
+# create the locks we will need
+socketLock = Lock()     # protect against thread races in socket usage
+
+# we will need to manually launch player, and can watch it
+# mpv --no-video --keep-open=no --audio-device=alsa/pipewire --input-ipc-server=/tmp/mpvsocket --idle
+debugPlayer = False
+
+# socket to use
+if debugPlayer:
+    udsock = "/tmp/mpvsocket"
+else:
+    udsock = f"/tmp/mpvsocket.{uuid.uuid1()}"
+
+# global process handle
+playstream = None
+# global cast and stream handles if active
+cast = None
+stream = None
+
+# enums to keep track of requests
+class mpvRequestID(Enum):
+    TRACK = 1
+    PLAYLIST = 2
+    METADATA = 3
+    CODEC = 4
+
+# cmds is a list
+def sockSendCmds(cmds, request_id=None):
+    # since we send this via JSON, mpv's input/ipc.c tells us we have to be careful to create
+    #   valid json.  So let's use the real json parser to handle escaping
+    #
+    # build the json for the list of cmds
+    jcmds = {"command": cmds}
+    if request_id is not None:
+        jcmds.update({"request_id": request_id})
+
+    # serialize and transmit
+    strcmds = json.dumps(jcmds)
+    with socketLock:
+        sock.sendall(f'{strcmds}\n'.encode('utf-8'))
+
+def startPlay():
+    sockSendCmds(["playlist-play-index", 0])
+
+def print_stop_time():
+    # Calculate how long we were playing
+    time_elapsed = datetime.now() - start_time
+    hours, remainder = divmod(int(time_elapsed.total_seconds()), 3600)
+    minutes, seconds = divmod(remainder, 60)
+
+    # Print exit message
+    print('\033[?25h')
+    print(Fore.RESET + "Playback stopped after {:02}:{:02}:{:02}".format(int(hours), int(minutes), int(seconds)))
+
 # Catch ctrl-c
 def signal_handler(sig, frame):
     # Re-enable cursor if it was turned off
     print('\033[?25h')
     print(Fore.RED + "Force closing...")
+    print_stop_time()
     clean_exit()
 
 # Do any necessary cleanup when closing on good terms
+termSettings = termios.tcgetattr(sys.stdin)
 def clean_exit():
+    # Re-enable cursor if it was turned off
+    print('\033[?25h')
+
+    global sock
+    if sock is not None:
+        sockSendCmds(["quit"])
+        sock = None
+    global playstream
     if (playstream is not None):
         playstream.terminate()  # just in case, and especially w/ audio error loop
+        playstream = None
+    global stream
     if (stream is not None):
         # stop playback and shut down cast app, back to ambient mode if enabled
         stream.stop()
         cast.quit_app()
+    termios.tcsetattr(sys.stdin, termios.TCSADRAIN, termSettings)
+    try:
+        os.unlink(udsock)
+    except OSError:
+        pass
+
+    # Close log file
+    if log_tracks:
+        track_log.close()
     sys.exit(0)
 
 # Download master list of channels
@@ -217,61 +301,71 @@ def startStream(channel_name):
     # Verify stream exists before starting stream
     stream_link = channelGet('PLS', args.channel)   # mpv wants PLS
 
-    # Open stream
-    print("Loading stream...", end='')
+    # launch mpv
+    if not debugPlayer:
+        # since we are using playlists, loop over the playlist to handle server oopses
+        # or network issues; "force" re-evaluates each entry for validity each time 
+        # through rather than caching the [possibly temporary] busted status
+        #
+        # The caching stuff here looks a little weird but ensures a 4s buffer
+        #   somafm allows fast download of approx 8 seconds, then it is "realtime"
+        #   (so we debugged with a 10sec cache setting)
+        # Adding "--demuxer-cache-wait=yes" won't start until cache is full (and is 
+        #   supposed to have no further influence during runtime), otherwise
+        #   this combo of flags (which oddly requires cache-pause-initial though it 
+        #   doesn't wait) will set things up to maintain a 4 second cache, reading
+        #   more if needed even while playing
+        cacheSecs = 4
+        psa = ['mpv']
+        psa += ['--no-video',
+                # '--no-config',        # doing this causes global plugins such as mpv-mpris to be skipped, which we do not want
+                '--keep-open=no',       # commonly overridden
+                '--loop-playlist=force',
+                '--cache=yes',
+                f'--cache-secs={cacheSecs}'
+                ]
+        psa += ['--network-timeout=5']
+        # default of alsa/pipewire fixes glitches and ticks compared to pulse pipewire in some scenarios
+        psa += ["--audio-device="+args.audio]
 
-    psa = ['mpv']
-    # since we are using playlists, loop over the playlist to handle server oopses
-    # or network issues; "force" re-evaluates each entry for validity each time 
-    # through rather than caching the [possibly temporary] busted status
-    #
-    # The caching stuff here looks a little weird but ensures a 4s buffer
-    #   somafm allows fast download of approx 8 seconds, then it is "realtime"
-    #   (so we debugged with a 10sec cache setting)
-    # Adding "--demuxer-cache-wait=yes" won't start until cache is full (and is 
-    #   supposed to have no further influence during runtime), otherwise
-    #   this combo of flags (which oddly requires cache-pause-initial though it 
-    #   doesn't wait) will set things up to maintain a 4 second cache, reading
-    #   more if needed even while playing
-    cacheSecs = 4
-    psa += ['--no-video',
-            # '--no-config',        # doing this causes global plugins such as mpv-mpris to be skipped, which we do not want
-            '--keep-open=no',       # commonly overridden
-            '--loop-playlist=force',
-            '--cache=yes',
-            '--cache-secs={}'.format(cacheSecs),
-                # these settings only change start behavior it seems
-                #
-                #'--cache-pause-wait={}'.format(cacheSecs),
-                #'--cache-pause=yes',
-                #'--cache-pause-initial=yes',
-            # dump icy- metadata and codec info when starting
-            #   ${playlist} shows playlist contents [with carriage returns, along with which is active], ${media-title} is name of playlist
-            '--term-playing-msg=PLS: ${media-title}\n${metadata}\nCodec: ${audio-codec}'
-            ]
-    psa += ['--network-timeout=30']
-    # default of alsa/pipewire fixes glitches and ticks compared to pulse pipewire in some scenarios
-    psa += ["--audio-device="+args.audio]
+        # don't output playing timecode; further reduces compute on player
+        psa += ["--quiet"]
+        psa += [f"--input-ipc-server={udsock}"]
+        psa += ["--idle"]
 
-    # don't output playing timecode; further reduces compute for parsing
-    psa += ["--quiet"]
+        psa.append(stream_link)
 
-    psa.append(stream_link)
+        global playstream
+        try:
+            playstream = subprocess.Popen(psa,
+                        stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                        shell=False)
+        except:
+            print(Fore.RED + "FAILED")
+            print("")
+            print(Fore.WHITE + "Playback encountered an unknown error.")
+            clean_exit()
+        print("Launched mpv")
 
+        time.sleep(1)   # wait for mpv to start
 
-    global playstream
+    # Create a UDS socket
+    global sock
+    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    print(f'Connecting to {udsock}...', end="")
+    sys.stdout.flush()
     try:
-        playstream = subprocess.Popen(psa,
-                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False)
-    except:
-        print(Fore.RED + "FAILED")
-        print("")
-        print(Fore.WHITE + "Playback encountered an unknown error.")
+        sock.connect(udsock)
+    except socket.error as msg:
+        print(Fore.RED + str(msg))
         clean_exit()
-    print("OK")
+    print("")
 
-    # Hand off to info display
-    streamInfo(playstream)
+    print(Fore.RED + "----------------------------------------------------------------------")
+    #print(Fore.WHITE+"<Up> to Favorite a Track, <Down> to WTF a Track")
+    print(Fore.WHITE+"<q> to Quit")
+    print(Fore.RED + "----------------------------------------------------------------------")
+
 
 # Stream channel on Chromecast
 def startCast(channel_name):
@@ -312,8 +406,6 @@ def startCast(channel_name):
     # Start player with no audio to get track info
     psa = ['mpv']
     psa += ['--no-video',
-            # dump icy- metadata and codec info when starting
-            #   ${playlist} shows playlist contents [with carriage returns, along with which is active], ${media-title} is name of playlist
             '--term-playing-msg=${metadata}\nCodec: ${audio-codec}'
             ]
     psa += ['--network-timeout=30']
@@ -348,81 +440,61 @@ def stationID(track):
     # If we get here, no match was found
     return(False)
 
-# Print stream and track information
-def streamInfo(playstream):
-    # Hide cursor
-    print('\033[?25l', end="")
-
-    InfoPrinted = False
-    print(Fore.RED + "--------------------------")
-    # Parse output
-    for line in playstream.stdout:
-        # Print debug information
-        if args.verbose:
-            print(line)
-
-        # Printed at start, and when we loop through playlist because of server or network failure
-        if line.startswith(b'Playing'):
-            print(Fore.CYAN + "\nStream Server: " + Fore.WHITE + line.decode().split(':', 1)[1].strip())
-
-        if InfoPrinted is False:
-            if line.startswith(b'icy-br'):
-                print(Fore.CYAN + "Bitrate: " + Fore.WHITE + line.decode().split(':', 1)[1].strip())
-            if line.startswith(b'icy-name'):
-                print(Fore.CYAN + "Channel: " + Fore.WHITE + line.decode().split(':', 1)[1].strip())
-            if line.startswith(b'icy-genre'):
-                print(Fore.CYAN + "Genre: " + Fore.WHITE + line.decode().split(':', 1)[1].strip())
-            if line.startswith(b'Codec'):
-                print(Fore.CYAN + "Codec: " + Fore.WHITE + line.decode().split(':', 1)[1].strip())
-            if line.startswith(b'PLS'):
-                print(Fore.CYAN + "Playlist: " + Fore.WHITE + line.decode().split(':', 1)[1].strip())
-            if line.startswith(b'File tags:'):
-                print(Fore.RED + "--------------------------")
-                print(Fore.WHITE + "Press Ctrl+C to Quit", end="")
-                InfoPrinted = True
-
-        # Updates on every new track
-        if line.startswith(b' icy-title:'):
-            track = line.decode().split(':', 1)[1].strip()
-
-            # Print date before track
-            print("")
-            print(Fore.BLUE + datetime.now().strftime("%H:%M:%S"), end=' | ')
-
-            # Highlight station IDs
-            IDStatus = stationID(track)
-            if IDStatus:
-                print(Fore.YELLOW + track, end="")
+def getkey():
+    old_settings = termios.tcgetattr(sys.stdin)
+    tty.setcbreak(sys.stdin.fileno())
+    try:
+        while True:
+            b = os.read(sys.stdin.fileno(), 3).decode()
+            if len(b) == 3:
+                k = ord(b[2])
             else:
-                print(Fore.GREEN + track, end="")
+                k = ord(b)
+            key_mapping = {
+                127: 'backspace',
+                10: 'return',
+                32: 'space',
+                9: 'tab',
+                27: 'esc',
+                65: 'up',
+                66: 'down',
+                67: 'right',
+                68: 'left',
+                49: 'home',
+                52: 'end',
+                53: 'pgup',
+                54: 'pgdown',
+            }
+            return key_mapping.get(k, chr(k))
+    finally:
+        termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
+
+def skipper():
+    global playlist
+    heartTrack = None
+    while True:
+        k = getkey()
+        if k == '?':
+            # debugging - dump playlist
+            sockSendCmds(["get_property", "playlist"], mpvRequestID.PLAYLIST.value)
+        elif k == 'q':
+            # Re-enable cursor if it was turned off
+            print('\033[?25h')
+            print(Fore.RED + "Shutting down...")
+            print_stop_time()
+            break
+        elif k == 'up':
+            if playlist[0] != heartTrack:
+                heartTrack = playlist[0]
+                print(f"{Fore.RED} ♥", end="")
+                sys.stdout.flush()
+                setRating(playlist[0], 1)
+        elif k == 'down':
+            print(f"{Fore.RED} ⛔", end="")
             sys.stdout.flush()
+            setRating(playlist[0], -1)
 
-            # Don't do logging/custom notifications to station ids
-            if not IDStatus:
-                # Log track to file if enabled
-                if log_tracks:
-                    track_log.write(track + "\n")
-
-                # Run custom notification command if enabled
-                if custom_notifications:
-                    subprocess.run([notification_cmd, track], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False)
-
-        # because we are looping the playlist, mpv unfortunately doesn't quit if we gave it
-        # a bad audio device, we have to detect this
-        if line.startswith(b'[ao] Failed to initialize audio driver'):
-            print(Fore.RED + "ERROR: failed to initialize audio driver " + args.audio)
-            clean_exit()
-
-# Execution below this line
-#-----------------------------------------------------------------------#
-# global process handle
-playstream = None
-# global cast and stream handles if active
-cast = None
-stream = None
-
-# Load signal handler
-signal.signal(signal.SIGINT, signal_handler)
+    clean_exit()
 
 # Handle arguments
 parser = argparse.ArgumentParser(description='Simple Python 3 player for SomaFM, version ' + version)
@@ -431,7 +503,7 @@ parser.add_argument('-s', '--stats', action='store_true', help='Display current 
 parser.add_argument('-a', '--about', action='store_true', help='Show information about SomaFM')
 parser.add_argument('-c', '--cast', nargs='?', default=False, help='Start playback on Chromecast')
 parser.add_argument('-f', '--file', action='store_true', help='Enable experimental track logging for this session')
-parser.add_argument('-v', '--verbose', action='store_true', help='For debug use, prints all output of media player.')
+parser.add_argument('-v', '--verbose', action='store_true', help='For debug use, prints all events from mpv.')
 parser.add_argument('-r', '--random', action='store_true', help='Choose a random channel at startup')
 parser.add_argument('-ao', '--audio', nargs='?', metavar='audio-device', default='alsa/pipewire', help='Audio device to use [default alsa/pipewire], use "help" to list available devices')
 parser.add_argument("channel", nargs='?', const=1, default=None, help="Channel to stream. Default is Drone Zone (unless the --random flag is passed)")
@@ -456,10 +528,6 @@ if args.audio == "help":
 
 # Get screen ready
 colorama.init()
-if platform.system() == "Windows":
-    os.system('cls')
-else:
-    os.system('clear')
 print(Style.BRIGHT, end='')
 
 if args.about:
@@ -526,6 +594,15 @@ elif args.channel == None:
 # Record the start time
 start_time = datetime.now()
 
+# Load signal handler
+signal.signal(signal.SIGINT, signal_handler)
+
+# launch keyboard monitor for skipper
+#   daemon means it will be killed when main thread exits
+t = Thread(target=skipper, daemon=True)
+t.start()
+
+
 # If Chromecast support is enabled, break off here
 if args.cast:
     if chromecast_support:
@@ -538,17 +615,70 @@ else:
     # Else, start stream
     startStream(args.channel)
 
-# Calculate how long we were playing
-time_elapsed = datetime.now() - start_time
-hours, remainder = divmod(int(time_elapsed.total_seconds()), 3600)
-minutes, seconds = divmod(remainder, 60)
+# request metadata and codec
+sockSendCmds(["get_property", "metadata"], mpvRequestID.METADATA.value)
+sockSendCmds(["get_property", "audio-codec"], mpvRequestID.CODEC.value)
 
-# Close log file
-if log_tracks:
-    track_log.close()
+# Hide cursor
+print('\033[?25l', end="")
+while sock is not None:
+    try:
+        events = sock.recv(4096)
+        events = events.decode('utf8')
+        for eventRaw in events.splitlines():
+            event = json.loads(eventRaw)
+            if args.verbose:
+                print(eventRaw)
+            if "file_error" in event and event["file_error"] == "audio output initialization failed":
+                print(f"\n{Fore.RED}ERROR: failed to initialize audio driver {args.audio}")
+                clean_exit()
+            elif "file_error" in event and event["file_error"] == "loading failed":
+                print(f"{Fore.RED}.", end="")
+                sys.stdout.flush()
+            elif "data" in event and "request_id" in event and event["request_id"] == mpvRequestID.METADATA.value:
+                print(f'{Fore.CYAN}Bitrate: {Fore.WHITE}{event["data"]["icy-br"]}')
+                print(f'{Fore.CYAN}Channel: {Fore.WHITE}{event["data"]["icy-name"]}')
+                print(f'{Fore.CYAN}Genre: {Fore.WHITE}{event["data"]["icy-genre"]}')
+            elif "data" in event and "request_id" in event and event["request_id"] == mpvRequestID.CODEC.value:
+                print(f'{Fore.CYAN}Codec: {Fore.WHITE}{event["data"]}')
+            elif "event" in event and event["event"] == "metadata-update":
+                # request the new title
+                sockSendCmds(["get_property", "media-title"], mpvRequestID.TRACK.value)
+            elif "data" in event and "request_id" in event and event["request_id"] == mpvRequestID.TRACK.value:
+                ## update playing track
+                track = event['data']
+                # Print date before track
+                print("")
+                print(f'{Fore.BLUE}{datetime.now().strftime("%H:%M:%S")}', end=' | ')
+            
+                # Highlight station IDs
+                IDStatus = stationID(track)
+                if IDStatus:
+                    print(f"{Fore.YELLOW}{track}", end="")
+                else:
+                    print(f"{Fore.GREEN}{track}", end="")
+                sys.stdout.flush()
 
-# Print exit message
-print('\033[?25h')
-print(Fore.RESET + "Playback stopped after {:02}:{:02}:{:02}".format(int(hours), int(minutes), int(seconds)))
-
-# EOF
+                # Don't do logging/custom notifications to station ids
+                if not IDStatus:
+                    # Log track to file if enabled
+                    if log_tracks:
+                        track_log.write(track + "\n")
+                    # Run custom notification command if enabled
+                    if custom_notifications:
+                        subprocess.run([notification_cmd, track], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False)
+            elif "data" in event and "request_id" in event and event["request_id"] == mpvRequestID.PLAYLIST.value:
+                # show playlist
+                print(f"{Fore.CYAN}\n\t--------------------------")
+                pls = event['data']
+                for ptrk in pls:
+                    url = ptrk['filename']
+                    if 'current' in ptrk and ptrk['current']:
+                        pt = f"\t{Fore.YELLOW}→"
+                    else:
+                        pt = "\t "
+                    print(f"{pt}{Fore.CYAN}{url}")
+                print(f"{Fore.CYAN}\t--------------------------", end="")
+                sys.stdout.flush()
+    except socket.error as e:
+        clean_exit()

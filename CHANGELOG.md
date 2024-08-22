@@ -1,6 +1,8 @@
 # Version History
 
 ## August, 2024
+- Release as v2.00-whorfin
+- Rewrite to use IPC rather than scraping stdout UX from `mpv`
 - Release as v1.88-whorfin
 
 ## July, 2024
