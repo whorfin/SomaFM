@@ -17,7 +17,7 @@ For an up-to-date list of what's new, check the [Changelog](CHANGELOG.md)
 
 ## whorfinized
 This is my fork.  Huge thanks to the original author.  I've removed support for players I don't use, simplifying the code for optimized `mpv` support.
-This branch is going further, as an `mpv`-only player, we now use unix-domain ipc sockets to communicate with `mpv`.
+This branch is going further, as an `mpv`-only player, we now use unix-domain IPC sockets to communicate with `mpv`.
 This means we are no longer parsing a "scraped" text GUI but instead using a documented and supported API.  Not only is this correct, it establishes the base for dealing with upcoming FLAC and HLS support, thumbs up/WTF activation, and clean future work.
 
 Windows support is dropped for the moment; Unix Domain Sockets are awesome and I have no interest in arsing about with Windows named pipes.

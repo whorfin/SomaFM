@@ -61,13 +61,10 @@ track_file = "/tmp/somafm_tracks.txt"
 #-----------------------------------------------------------------------
 
 # SomaFM channel list
-url = "https://somafm.com/channels.json"
+channelsURL = "https://somafm.com/channels.json"
 
 # Default image size for icons
 image_size = "xlimage"
-
-# Known station IDs
-station_ids = ["SomaFM", "Big Url", "Nerd Show"]
 
 ## set up needed globals
 sock = None
@@ -175,7 +172,7 @@ def downloadChannels():
 
     # Pull down JSON file
     try:
-        channel_raw = requests.get(url, timeout=15)
+        channel_raw = requests.get(channelsURL, timeout=15)
     except requests.exceptions.Timeout:
         print("Timeout!")
         clean_exit()
@@ -267,6 +264,8 @@ def channelGet(request, channel_name):
                 return(channel['description'])
             elif request == "ICON_URL":
                 return(channel[image_size])
+            elif request == "STID":
+                return(channel['id'])
             elif request == "URL":
                 # parse this out directly, we only want one format; AAC FTW
                 url = None
@@ -324,7 +323,7 @@ def startStream(channel_name):
                 '--cache=yes',
                 f'--cache-secs={cacheSecs}'
                 ]
-        psa += ['--network-timeout=5']
+        psa += ['--network-timeout=30']
         # default of alsa/pipewire fixes glitches and ticks compared to pulse pipewire in some scenarios
         psa += ["--audio-device="+args.audio]
 
@@ -362,9 +361,29 @@ def startStream(channel_name):
     print("")
 
     print(Fore.RED + "----------------------------------------------------------------------")
-    #print(Fore.WHITE+"<Up> to Favorite a Track, <Down> to WTF a Track")
+    print(Fore.WHITE+"<Up> to Love a Track, <Down> to WTF?! a Track")
     print(Fore.WHITE+"<q> to Quit")
     print(Fore.RED + "----------------------------------------------------------------------")
+
+
+def getPlayingTrack():
+    stid = channelGet('STID', args.channel)
+    songsr = requests.get(f"https://api.somafm.com/ios/songs/{stid}.json")
+    songs = songsr.json()
+    track = songs["songs"][0]
+    return(track)
+
+def sendTrackLove(track):
+    stid = channelGet('STID', args.channel)
+
+    rateRaw = requests.get(f"https://api.somafm.com/ios/songlove.cgi?channel={stid}&artist={track['artist']}&title={track['title']}&device=(null)&lang=en-US")
+    # rateRaw.text should be 'OK\n'
+
+def sendTrackWTF(track):
+    stid = channelGet('STID', args.channel)
+
+    rateRaw = requests.get(f"https://api.somafm.com/ios/songwtf.cgi?channel={stid}&artist={track['artist']}&title={track['title']}&device=(null)&lang=en-US")
+    # rateRaw.text should be 'OK\n'
 
 
 # Stream channel on Chromecast
@@ -405,9 +424,7 @@ def startCast(channel_name):
 
     # Start player with no audio to get track info
     psa = ['mpv']
-    psa += ['--no-video',
-            '--term-playing-msg=${metadata}\nCodec: ${audio-codec}'
-            ]
+    psa += ['--no-video']
     psa += ['--network-timeout=30']
     psa += ["--audio-device=null"]  # no audio
 
@@ -419,7 +436,8 @@ def startCast(channel_name):
     global playstream
     try:
         playstream = subprocess.Popen(psa,
-                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False)
+                    stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                        shell=False)
     except:
         print(Fore.RED + "Track Sync Failed!")
         clean_exit()
@@ -429,16 +447,6 @@ def startCast(channel_name):
 
     # If we get here, then player has stopped and so should Cast
     cast.quit_app()
-
-# Determine if track is a Station ID
-def stationID(track):
-    # Loop through known IDs, return on match
-    for station in station_ids:
-        if station.upper() in track.upper():
-            return(True)
-
-    # If we get here, no match was found
-    return(False)
 
 def getkey():
     old_settings = termios.tcgetattr(sys.stdin)
@@ -471,7 +479,7 @@ def getkey():
 
 def skipper():
     global playlist
-    heartTrack = None
+    trackRated = None
     while True:
         k = getkey()
         if k == '?':
@@ -484,15 +492,19 @@ def skipper():
             print_stop_time()
             break
         elif k == 'up':
-            if playlist[0] != heartTrack:
-                heartTrack = playlist[0]
+            track = getPlayingTrack()
+            if track != trackRated:
+                trackRated = track
                 print(f"{Fore.RED} ♥", end="")
                 sys.stdout.flush()
-                setRating(playlist[0], 1)
+                sendTrackLove(track)
         elif k == 'down':
-            print(f"{Fore.RED} ⛔", end="")
-            sys.stdout.flush()
-            setRating(playlist[0], -1)
+            track = getPlayingTrack()
+            if track != trackRated:
+                trackRated = track
+                print(f"{Fore.RED} ⛔", end="")
+                sys.stdout.flush()
+                sendTrackWTF(track)
 
     clean_exit()
 
@@ -619,6 +631,7 @@ else:
 sockSendCmds(["get_property", "metadata"], mpvRequestID.METADATA.value)
 sockSendCmds(["get_property", "audio-codec"], mpvRequestID.CODEC.value)
 
+
 # Hide cursor
 print('\033[?25l', end="")
 while sock is not None:
@@ -642,31 +655,33 @@ while sock is not None:
             elif "data" in event and "request_id" in event and event["request_id"] == mpvRequestID.CODEC.value:
                 print(f'{Fore.CYAN}Codec: {Fore.WHITE}{event["data"]}')
             elif "event" in event and event["event"] == "metadata-update":
+                # rather than requesting media-title, which may not be set with Rusty's
+                # high-quality HLS flac streaming, pull the complete info from the API
+                # This allows us to also get the album name!  and we then set that back for
+                # playerctl
                 # request the new title
-                sockSendCmds(["get_property", "media-title"], mpvRequestID.TRACK.value)
-            elif "data" in event and "request_id" in event and event["request_id"] == mpvRequestID.TRACK.value:
-                ## update playing track
-                track = event['data']
+                track = getPlayingTrack()
+
+                ## construct and print track name
                 # Print date before track
                 print("")
                 print(f'{Fore.BLUE}{datetime.now().strftime("%H:%M:%S")}', end=' | ')
             
-                # Highlight station IDs
-                IDStatus = stationID(track)
-                if IDStatus:
-                    print(f"{Fore.YELLOW}{track}", end="")
-                else:
-                    print(f"{Fore.GREEN}{track}", end="")
+                print(f"{Fore.GREEN}{track['artist']} {Fore.WHITE}- {Fore.YELLOW}{track['title']} {Fore.MAGENTA}[{track['album']}]", end="")
                 sys.stdout.flush()
 
-                # Don't do logging/custom notifications to station ids
-                if not IDStatus:
-                    # Log track to file if enabled
-                    if log_tracks:
-                        track_log.write(track + "\n")
-                    # Run custom notification command if enabled
-                    if custom_notifications:
-                        subprocess.run([notification_cmd, track], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False)
+                # Track for logging, notifications and metadata
+                track_desc = f"{track['artist']} - {track['title']} [{track['album']}]"
+
+                # update metadata for playerctl and friends
+                sockSendCmds(["set_property", "force-media-title", track_desc])
+
+                # Log track to file if enabled
+                if log_tracks:
+                    track_log.write(track_desc + "\n")
+                # Run custom notification command if enabled
+                if custom_notifications:
+                    subprocess.run([notification_cmd, track_desc], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False)
             elif "data" in event and "request_id" in event and event["request_id"] == mpvRequestID.PLAYLIST.value:
                 # show playlist
                 print(f"{Fore.CYAN}\n\t--------------------------")
@@ -682,3 +697,4 @@ while sock is not None:
                 sys.stdout.flush()
     except socket.error as e:
         clean_exit()
+

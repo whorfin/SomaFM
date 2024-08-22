@@ -1,9 +1,13 @@
 # Version History
 
 ## August, 2024
-- Release as v2.00-whorfin
+- Release as v2.1-whorfin
 - Rewrite to use IPC rather than scraping stdout UX from `mpv`
-- Release as v1.88-whorfin
+- Query tracks from API - provides album info, and works with HLS
+- Support LOVE and WTF?!
+- Drop stationID highlighting - station IDS are not identified by the API
+    - ... and it has become very inconsistent from station to station and not all IDs are long enough for the metadata to update
+- Last old-style Release as v1.88-whorfin
 
 ## July, 2024
 - Release as v1.86-whorfin
