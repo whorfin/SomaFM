@@ -95,6 +95,21 @@ class mpvRequestID(Enum):
     METADATA = 3
     CODEC = 4
 
+def createUDS(udsock):
+    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    print(f'Connecting to {udsock}...', end="")
+    sys.stdout.flush()
+    # wait until mpv starts
+    connected = False
+    while not connected:
+        try:
+            sock.connect(udsock)
+            connected = True
+        except:
+            time.sleep(.1)
+    print("")
+    return(sock)
+
 # cmds is a list
 def sockSendCmds(cmds, request_id=None):
     # since we send this via JSON, mpv's input/ipc.c tells us we have to be careful to create
@@ -109,6 +124,11 @@ def sockSendCmds(cmds, request_id=None):
     strcmds = json.dumps(jcmds)
     with socketLock:
         sock.sendall(f'{strcmds}\n'.encode('utf-8'))
+
+# if we send tracks with "append-play", first track's force-media-title may not work
+#   so once we've got the playlist set, we need to start playback
+def sendPlaybackURL(url):
+    sockSendCmds(["loadfile", url, "append"])
 
 def startPlay():
     sockSendCmds(["playlist-play-index", 0])
@@ -332,8 +352,6 @@ def startStream(channel_name):
         psa += [f"--input-ipc-server={udsock}"]
         psa += ["--idle"]
 
-        psa.append(stream_link)
-
         global playstream
         try:
             playstream = subprocess.Popen(psa,
@@ -346,24 +364,17 @@ def startStream(channel_name):
             clean_exit()
         print("Launched mpv")
 
-        time.sleep(1)   # wait for mpv to start
-
-    # Create a UDS socket
     global sock
-    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    print(f'Connecting to {udsock}...', end="")
-    sys.stdout.flush()
-    try:
-        sock.connect(udsock)
-    except socket.error as msg:
-        print(Fore.RED + str(msg))
-        clean_exit()
-    print("")
+    sock = createUDS(udsock)
 
     print(Fore.RED + "----------------------------------------------------------------------")
     print(Fore.WHITE+"<Up> to Love a Track, <Down> to WTF?! a Track")
     print(Fore.WHITE+"<q> to Quit")
     print(Fore.RED + "----------------------------------------------------------------------")
+
+    # send the URL and start
+    sendPlaybackURL(stream_link)
+    startPlay()
 
 
 def getPlayingTrack():
@@ -431,8 +442,6 @@ def startCast(channel_name):
     # don't output playing timecode; further reduces compute for parsing
     psa += ["--quiet"]
 
-    psa.append(stream_url)
-
     global playstream
     try:
         playstream = subprocess.Popen(psa,
@@ -442,11 +451,13 @@ def startCast(channel_name):
         print(Fore.RED + "Track Sync Failed!")
         clean_exit()
 
-    # Hand off to info display
-    streamInfo(playstream)
+    # Create a UDS socket
+    global sock
+    sock = createUDS(udsock)
 
-    # If we get here, then player has stopped and so should Cast
-    cast.quit_app()
+    # send the URL and start
+    sendPlaybackURL(stream_url)
+    startPlay()
 
 def getkey():
     old_settings = termios.tcgetattr(sys.stdin)
@@ -624,17 +635,12 @@ if args.cast:
         print(Fore.WHITE + "Please install the pychromecast library.")
         clean_exit()
 else:
-    # Else, start stream
+    # Else, playback stream
     startStream(args.channel)
 
-# request metadata and codec
-sockSendCmds(["get_property", "metadata"], mpvRequestID.METADATA.value)
-sockSendCmds(["get_property", "audio-codec"], mpvRequestID.CODEC.value)
-
-
-# Hide cursor
-print('\033[?25l', end="")
-while sock is not None:
+# Before we can request full metadata, we need the load to complete:
+ready = False
+while sock is not None and not ready:
     try:
         events = sock.recv(4096)
         events = events.decode('utf8')
@@ -642,6 +648,26 @@ while sock is not None:
             event = json.loads(eventRaw)
             if args.verbose:
                 print(eventRaw)
+            if "event" in event and event["event"] == "file-loaded":
+                ready = True
+    except socket.error as e:
+        clean_exit()
+
+# request metadata and codec
+sockSendCmds(["get_property", "metadata"], mpvRequestID.METADATA.value)
+sockSendCmds(["get_property", "audio-codec"], mpvRequestID.CODEC.value)
+
+# Hide cursor
+print('\033[?25l', end="")
+while sock is not None:
+    lastTrack = None
+    try:
+        events = sock.recv(4096)
+        events = events.decode('utf8')
+        for eventRaw in events.splitlines():
+            event = json.loads(eventRaw)
+            if args.verbose:
+                print(event)
             if "file_error" in event and event["file_error"] == "audio output initialization failed":
                 print(f"\n{Fore.RED}ERROR: failed to initialize audio driver {args.audio}")
                 clean_exit()
@@ -662,26 +688,31 @@ while sock is not None:
                 # request the new title
                 track = getPlayingTrack()
 
-                ## construct and print track name
-                # Print date before track
-                print("")
-                print(f'{Fore.BLUE}{datetime.now().strftime("%H:%M:%S")}', end=' | ')
-            
-                print(f"{Fore.GREEN}{track['artist']} {Fore.WHITE}- {Fore.YELLOW}{track['title']} {Fore.MAGENTA}[{track['album']}]", end="")
-                sys.stdout.flush()
+                # there are situations where a metadata-update is sent, but track name proper
+                # has not updated, such as interstitial station IDs
+                # ignore dupes
+                if track != lastTrack:
+                    lastTrack = track
+                    ## construct and print track name
+                    # Print date before track
+                    print("")
+                    print(f'{Fore.BLUE}{datetime.now().strftime("%H:%M:%S")}', end=' | ')
+                
+                    print(f"{Fore.GREEN}{track['artist']} {Fore.WHITE}- {Fore.YELLOW}{track['title']} {Fore.MAGENTA}[{track['album']}]", end="")
+                    sys.stdout.flush()
 
-                # Track for logging, notifications and metadata
-                track_desc = f"{track['artist']} - {track['title']} [{track['album']}]"
+                    # Track for logging, notifications and metadata
+                    track_desc = f"{track['artist']} - {track['title']} [{track['album']}]"
 
-                # update metadata for playerctl and friends
-                sockSendCmds(["set_property", "force-media-title", track_desc])
+                    # update metadata for playerctl and friends
+                    sockSendCmds(["set_property", "force-media-title", track_desc])
 
-                # Log track to file if enabled
-                if log_tracks:
-                    track_log.write(track_desc + "\n")
-                # Run custom notification command if enabled
-                if custom_notifications:
-                    subprocess.run([notification_cmd, track_desc], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False)
+                    # Log track to file if enabled
+                    if log_tracks:
+                        track_log.write(track_desc + "\n")
+                    # Run custom notification command if enabled
+                    if custom_notifications:
+                        subprocess.run([notification_cmd, track_desc], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False)
             elif "data" in event and "request_id" in event and event["request_id"] == mpvRequestID.PLAYLIST.value:
                 # show playlist
                 print(f"{Fore.CYAN}\n\t--------------------------")
@@ -697,4 +728,3 @@ while sock is not None:
                 sys.stdout.flush()
     except socket.error as e:
         clean_exit()
-
