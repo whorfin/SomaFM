@@ -266,6 +266,15 @@ def channelGet(request, channel_name):
                 #print(channel['playlists'])
                 url = None
                 fmt = None
+                if "hlsPlaylists" in channel:
+                    for pls in channel['hlsPlaylists']:
+                        #print(pls)
+                        if pls['quality'] == "lossless":
+                            url = pls['url']
+                            fmt = pls['format']
+                            if fmt == "flac-fmp4":
+                                print(f"{Fore.GREEN}Good news, everybody!  Lossless stream found.{Fore.WHITE}")
+                                return(pls['url'])
                 for pls in channel['playlists']:
                     #print(pls)
                     if pls['quality'] == "highest":
@@ -274,9 +283,9 @@ def channelGet(request, channel_name):
                         if fmt == "aac":
                             return(pls['url'])
                 if url != None:
-                    print(Fore.RED + "Could not find AAC stream, settling for " + fmt + Fore.WHITE)
+                    print(f"{Fore.RED}Could not find AAC stream, settling for {fmt}{Fore.WHITE}")
                     return(url)
-                print(Fore.RED + "No 'highest' quality stream found, bailing")
+                print(f"{Fore.RED}No 'highest' quality stream found, bailing{Fore.WHITE}")
                 clean_exit()
             elif request == "NAME":
                 return(channel['title'])
@@ -675,9 +684,12 @@ while sock is not None:
                 print(f"{Fore.RED}.", end="")
                 sys.stdout.flush()
             elif "data" in event and "request_id" in event and event["request_id"] == mpvRequestID.METADATA.value:
-                print(f'{Fore.CYAN}Bitrate: {Fore.WHITE}{event["data"]["icy-br"]}')
-                print(f'{Fore.CYAN}Channel: {Fore.WHITE}{event["data"]["icy-name"]}')
-                print(f'{Fore.CYAN}Genre: {Fore.WHITE}{event["data"]["icy-genre"]}')
+                if "icy-br" in event['data']:
+                    print(f"{Fore.CYAN}Bitrate: {Fore.WHITE}{event['data']['icy-br']}")
+                if "icy-name" in event['data']:
+                    print(f"{Fore.CYAN}Channel: {Fore.WHITE}{event['data']['icy-name']}")
+                if "icy-genre" in event['data']:
+                    print(f"{Fore.CYAN}Genre: {Fore.WHITE}{event['data']['icy-genre']}")
             elif "data" in event and "request_id" in event and event["request_id"] == mpvRequestID.CODEC.value:
                 print(f'{Fore.CYAN}Codec: {Fore.WHITE}{event["data"]}')
             elif "event" in event and event["event"] == "metadata-update":
