@@ -16,11 +16,11 @@ For an up-to-date list of what's new, check the [Changelog](CHANGELOG.md)
 
 
 ## whorfinized
-This is my fork.  Huge thanks to the original author.  I've removed support for players I don't use, simplifying the code for optimized `mpv` support.
+This is my fork.  Huge thanks to the original author.  I've removed support for players I don't use, specializing the code for optimized `mpv` support.
 This branch is going further, as an `mpv`-only player, we now use unix-domain IPC sockets to communicate with `mpv`.
-This means we are no longer parsing a "scraped" text GUI but instead using a documented and supported API.  Not only is this correct, it establishes the base for dealing with upcoming FLAC and HLS support, thumbs up/WTF activation, and clean future work.
+This means we are no longer parsing a "scraped" text GUI but instead using a documented and supported API.  Not only is this correct, it establishes the base for dealing with upcoming FLAC and HLS support, Love/WTF activation (done!), and clean future work.
 
-Windows support is dropped for the moment; Unix Domain Sockets are awesome and I have no interest in arsing about with Windows named pipes.
+Windows support is dropped; Unix Domain Sockets are awesome and I have no interest in arsing about with Windows named pipes.
 
 Previously, the main features I've added to `mpv` launch are robust reconnection by leveraging playlist looping, and fast start, along with `pipewire` support.
 Importantly, I've also fixed channel stream extraction parsing to always use the highest quality codec at the highest bitrate; previous logic was dependent on json ordering and assumed the first entry was the best, which incorrectly resulted in mp3.
@@ -53,7 +53,7 @@ somafm 80
 Finally, if you're not sure what you want to listen to, you can pass the -r option to let the script randomly select from one of the currently active channels:
 
 ```console
-somafm -r
+somafm --random
 ```
 
 ## Optional Arguments
@@ -78,7 +78,7 @@ If you have yet to embrace the future, you can use this flag to chose your weapo
 `auto` will give a go at auto-detecting based on your OS defaults, while `help` will probe and list available devices.
 
 ## Supported Player
-This program is simply a front-end, playback requires `mpv` to be installed:
+This program is a front-end, playback requires `mpv` to be installed:
 * [mpv](https://mpv.io/)
 
 ## About SomaFM
