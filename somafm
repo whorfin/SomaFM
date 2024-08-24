@@ -94,6 +94,8 @@ class mpvRequestID(Enum):
     PLAYLIST = 2
     METADATA = 3
     CODEC = 4
+    PARAMS = 5
+    BITRATE = 6
 
 def createUDS(udsock):
     sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -648,6 +650,7 @@ else:
     startStream(args.channel)
 
 # Before we can request full metadata, we need the load to complete:
+#   not just file-loaded but playback-restart
 ready = False
 while sock is not None and not ready:
     try:
@@ -657,14 +660,16 @@ while sock is not None and not ready:
             event = json.loads(eventRaw)
             if args.verbose:
                 print(eventRaw)
-            if "event" in event and event["event"] == "file-loaded":
+            if "event" in event and event["event"] == "playback-restart":
                 ready = True
     except socket.error as e:
         clean_exit()
 
 # request metadata and codec
 sockSendCmds(["get_property", "metadata"], mpvRequestID.METADATA.value)
-sockSendCmds(["get_property", "audio-codec"], mpvRequestID.CODEC.value)
+sockSendCmds(["get_property", "audio-codec-name"], mpvRequestID.CODEC.value)
+sockSendCmds(["get_property", "audio-out-params"], mpvRequestID.PARAMS.value)
+sockSendCmds(["get_property", "audio-bitrate"], mpvRequestID.BITRATE.value)
 
 # Hide cursor
 print('\033[?25l', end="")
@@ -684,14 +689,21 @@ while sock is not None:
                 print(f"{Fore.RED}.", end="")
                 sys.stdout.flush()
             elif "data" in event and "request_id" in event and event["request_id"] == mpvRequestID.METADATA.value:
-                if "icy-br" in event['data']:
-                    print(f"{Fore.CYAN}Bitrate: {Fore.WHITE}{event['data']['icy-br']}")
                 if "icy-name" in event['data']:
                     print(f"{Fore.CYAN}Channel: {Fore.WHITE}{event['data']['icy-name']}")
                 if "icy-genre" in event['data']:
                     print(f"{Fore.CYAN}Genre: {Fore.WHITE}{event['data']['icy-genre']}")
+            elif "data" in event and "request_id" in event and event["request_id"] == mpvRequestID.PARAMS.value:
+                print(f"{Fore.CYAN}Audio: {Fore.WHITE}{event['data']['samplerate']}Hz {event['data']['hr-channels']} {event['data']['format']}")
             elif "data" in event and "request_id" in event and event["request_id"] == mpvRequestID.CODEC.value:
                 print(f'{Fore.CYAN}Codec: {Fore.WHITE}{event["data"]}')
+            elif "request_id" in event and event["request_id"] == mpvRequestID.BITRATE.value:
+                if event["error"] == "success":
+                    print(f"{Fore.CYAN}Bitrate: {Fore.WHITE}~{event['data'] // 1000} Kbps")
+                else:
+                    # not valid yet, try again
+                    time.sleep(.1)
+                    sockSendCmds(["get_property", "audio-bitrate"], mpvRequestID.BITRATE.value)
             elif "event" in event and event["event"] == "metadata-update":
                 # rather than requesting media-title, which may not be set with Rusty's
                 # high-quality HLS flac streaming, pull the complete info from the API
