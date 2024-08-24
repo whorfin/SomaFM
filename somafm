@@ -3,7 +3,7 @@
 # by whorfin
 # Licensed under the GPLv3, see "COPYING"
 #   inspired by "somafm" by Tom Nardi (MS3FGX@gmail.com)
-version = "2.4"
+version = "2.5"
 
 import re
 import os
@@ -42,29 +42,10 @@ default_chan = "Drone Zone"
 # Name of Chromecast device
 chromecast_name = "The Sound Pool"
 
-# Experimental Options:
-#-----------------------------------------------------------------------
-
-# Run a custom command on each new track (BE CAREFUL)
-custom_notifications = False
-
-# Custom notification command, track title will be given as argument
-notification_cmd = ""
-
-# Log tracks to file
-log_tracks = False
-
 # File to store track listing
 track_file = "/tmp/somafm_tracks.txt"
-
-# Following variables should probably be left alone
-#-----------------------------------------------------------------------
-
-# SomaFM channel list
-channelsURL = "https://somafm.com/channels.json"
-
-# Default image size for icons
-image_size = "xlimage"
+apiBase = "https://api.somafm.com/ios"  # no trailing slash please
+apiTimeout = 5
 
 ## set up needed globals
 sock = None
@@ -81,6 +62,12 @@ if debugPlayer:
     udsock = "/tmp/mpvsocket"
 else:
     udsock = f"/tmp/mpvsocket.{uuid.uuid1()}"
+
+session = requests.Session()
+session.headers.update({
+    'User-Agent' : f'somafm/{version} (python)',
+    'Accept-Encoding' : 'gzip, deflate, br'
+})
 
 # global process handles
 playstream = None
@@ -170,7 +157,6 @@ def clean_exit():
         playstream.terminate()  # just in case, and especially w/ audio error loop
         playstream = None
     global hlsstream
-    print(f"terminating time, hlsstream: {hlsstream}")
     if hlsstream:
         hlsstream.terminate()  # just in case, and especially w/ audio error loop
         hlsstream = None
@@ -186,22 +172,19 @@ def clean_exit():
         pass
 
     # Close log file
-    if log_tracks:
+    if args.file:
         track_log.close()
     sys.exit(0)
 
 # Download master list of channels
 def downloadChannels():
-    # Make global so other functions can access it
     global channel_list
 
-    # Let user know we're downloading
     print("Downloading channel list...", end='')
     sys.stdout.flush()
 
-    # Pull down JSON file
     try:
-        channel_raw = requests.get(channelsURL, timeout=15)
+        channel_raw = session.get(f"{apiBase}/channels.json", timeout=apiTimeout)
     except requests.exceptions.Timeout:
         print("Timeout!")
         clean_exit()
@@ -212,7 +195,6 @@ def downloadChannels():
         print("Unknown Error!")
         clean_exit()
 
-    # Put channels in list
     channel_list = channel_raw.json()['channels']
 
     # sort it
@@ -304,7 +286,7 @@ def channelGet(request, channel_name):
             elif request == "DESC":
                 return(channel['description'])
             elif request == "ICON_URL":
-                return(channel[image_size])
+                return(channel['xlimage'])
             elif request == "STID":
                 return(channel['id'])
             elif request == "URL":
@@ -322,7 +304,7 @@ def channelGet(request, channel_name):
                     print(Fore.RED + "No 'highest' quality AAC stream found, bailing")
                     clean_exit()
 
-                pls_file = requests.get(url)
+                pls_file = session.get(url, timeout=apiTimeout)
                 # Split out file URL
                 for line in pls_file.text.splitlines():
                     if "File1" in line:
@@ -441,7 +423,7 @@ def startStream(channel_name):
 
 def getPlayingTrack():
     stid = channelGet('STID', args.channel)
-    songsr = requests.get(f"https://api.somafm.com/ios/songs/{stid}.json")
+    songsr = session.get(f"{apiBase}/songs/{stid}.json", timeout=apiTimeout)
     songs = songsr.json()
     track = songs["songs"][0]
     return(track)
@@ -449,13 +431,13 @@ def getPlayingTrack():
 def sendTrackLove(track):
     stid = channelGet('STID', args.channel)
 
-    rateRaw = requests.get(f"https://api.somafm.com/ios/songlove.cgi?channel={stid}&artist={track['artist']}&title={track['title']}&device=(null)&lang=en-US")
+    rateRaw = session.get(f"{apiBase}/songlove.cgi?channel={stid}&artist={track['artist']}&title={track['title']}&device=(null)&lang=en-US", timeout=apiTimeout)
     # rateRaw.text should be 'OK\n'
 
 def sendTrackWTF(track):
     stid = channelGet('STID', args.channel)
 
-    rateRaw = requests.get(f"https://api.somafm.com/ios/songwtf.cgi?channel={stid}&artist={track['artist']}&title={track['title']}&device=(null)&lang=en-US")
+    rateRaw = session.get(f"{apiBase}/songwtf.cgi?channel={stid}&artist={track['artist']}&title={track['title']}&device=(null)&lang=en-US", timeout=apiTimeout)
     # rateRaw.text should be 'OK\n'
 
 
@@ -603,10 +585,6 @@ else:
     # If there is string after -c, use it as device name
     chromecast_name = args.cast
 
-# Enable log file
-if args.file:
-    log_tracks = True
-
 # check if we were trying to list audio devices
 if args.audio == "help":
     devices = subprocess.run(['mpv', '--audio-device=help'], stdout=subprocess.PIPE).stdout.decode('utf-8')
@@ -669,7 +647,7 @@ if args.stats:
     clean_exit()
 
 # Open file for track logging (enable line buffering)
-if log_tracks:
+if args.file:
     track_log = open(track_file, 'a', 1)
 
 # If -r option given and no channel provided, pick random channel from list
@@ -807,11 +785,8 @@ while sock is not None:
                     sockSendCmds(["set_property", "force-media-title", track_desc])
 
                     # Log track to file if enabled
-                    if log_tracks:
+                    if args.file:
                         track_log.write(track_desc + "\n")
-                    # Run custom notification command if enabled
-                    if custom_notifications:
-                        subprocess.run([notification_cmd, track_desc], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False)
             elif "data" in event and "request_id" in event and event["request_id"] == mpvRequestID.PLAYLIST.value:
                 # show playlist
                 print(f"{Fore.CYAN}\n\t--------------------------")
