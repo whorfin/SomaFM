@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # Python frontend for playing SomaFM with mpv
-# Written by Tom Nardi (MS3FGX@gmail.com)
+# by whorfin
 # Licensed under the GPLv3, see "COPYING"
-#   customized and extended with a focus on mpv by whorfin
-version = "2.1"
+#   inspired by "somafm" by Tom Nardi (MS3FGX@gmail.com)
+version = "2.2"
 
 import re
 import os
@@ -275,7 +275,7 @@ def channelGet(request, channel_name):
                             url = pls['url']
                             fmt = pls['format']
                             if fmt == "flac-fmp4":
-                                print(f"{Fore.GREEN}Good news, everybody!  Lossless stream found.{Fore.WHITE}")
+                                print(f"{Fore.GREEN}Good news, everyone!  Lossless stream found.{Fore.WHITE}")
                                 return(pls['url'])
                 for pls in channel['playlists']:
                     #print(pls)
