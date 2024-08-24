@@ -20,6 +20,8 @@ This is my fork.  Huge thanks to the original author.  I've removed support for 
 This branch is going further, as an `mpv`-only player, we now use unix-domain IPC sockets to communicate with `mpv`.
 This means we are no longer parsing a "scraped" text GUI but instead using a documented and supported API.  Not only is this correct, it establishes the base for dealing with upcoming FLAC and HLS support, Love/WTF activation (done!), and clean future work.
 
+Preliminary FLAC over HLS support is added.  Note that track titles are delayed from playback, due to offsets between the HLS and the icecast stream used for titles.
+
 Windows support is dropped; Unix Domain Sockets are awesome and I have no interest in arsing about with Windows named pipes.
 
 Previously, the main features I've added to `mpv` launch are robust reconnection by leveraging playlist looping, and fast start, along with `pipewire` support.

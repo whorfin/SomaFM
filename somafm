@@ -3,7 +3,7 @@
 # by whorfin
 # Licensed under the GPLv3, see "COPYING"
 #   inspired by "somafm" by Tom Nardi (MS3FGX@gmail.com)
-version = "2.3"
+version = "2.4"
 
 import re
 import os
@@ -82,8 +82,9 @@ if debugPlayer:
 else:
     udsock = f"/tmp/mpvsocket.{uuid.uuid1()}"
 
-# global process handle
+# global process handles
 playstream = None
+hlsstream = None
 # global cast and stream handles if active
 cast = None
 stream = None
@@ -165,11 +166,16 @@ def clean_exit():
         sockSendCmds(["quit"])
         sock = None
     global playstream
-    if (playstream is not None):
+    if playstream:
         playstream.terminate()  # just in case, and especially w/ audio error loop
         playstream = None
+    global hlsstream
+    print(f"terminating time, hlsstream: {hlsstream}")
+    if hlsstream:
+        hlsstream.terminate()  # just in case, and especially w/ audio error loop
+        hlsstream = None
     global stream
-    if (stream is not None):
+    if stream:
         # stop playback and shut down cast app, back to ambient mode if enabled
         stream.stop()
         cast.quit_app()
@@ -260,6 +266,10 @@ def channelGet(request, channel_name):
             if request == "VERIFY":
                 return()
             elif request == "PLS":
+                # Return a tuple; if second entry is not None, it's an HLS link,
+                #   and the regular stream link is the lowest quality
+                #   icecast stream - for title change detection on HLS streams
+
                 # the first one isn't necessarily the best; "quality_num" was just the nth, 
                 # but they have names! and aren't necessarily ordered by quality; mp3 comes 
                 # before aac now
@@ -267,27 +277,26 @@ def channelGet(request, channel_name):
                 #return(channel['playlists'][0]['url'])
 
                 #print(channel['playlists'])
+                if "hlsPlaylists" in channel:
+                    for hpls in channel['hlsPlaylists']:
+                        if hpls['quality'] == "lossless":
+                            url = hpls['url']
+                            if hpls['format'] == "flac-fmp4":
+                                for pls in channel['playlists']:
+                                    if pls['quality'] == "low":
+                                        url = pls['url']
+                                        return((pls['url'], hpls['url']))
                 url = None
                 fmt = None
-                if "hlsPlaylists" in channel:
-                    for pls in channel['hlsPlaylists']:
-                        #print(pls)
-                        if pls['quality'] == "lossless":
-                            url = pls['url']
-                            fmt = pls['format']
-                            if fmt == "flac-fmp4":
-                                print(f"{Fore.GREEN}Good news, everyone!  Lossless stream found.{Fore.WHITE}")
-                                return(pls['url'])
                 for pls in channel['playlists']:
-                    #print(pls)
                     if pls['quality'] == "highest":
                         url = pls['url']
                         fmt = pls['format']
                         if fmt == "aac":
-                            return(pls['url'])
+                            return((pls['url'], None))
                 if url != None:
                     print(f"{Fore.RED}Could not find AAC stream, settling for {fmt}{Fore.WHITE}")
-                    return(url)
+                    return((url, None))
                 print(f"{Fore.RED}No 'highest' quality stream found, bailing{Fore.WHITE}")
                 clean_exit()
             elif request == "NAME":
@@ -330,9 +339,13 @@ def channelGet(request, channel_name):
 # Stream channel with media player
 def startStream(channel_name):
     # Verify stream exists before starting stream
-    stream_link = channelGet('PLS', args.channel)   # mpv wants PLS
+    (stream_link, hlsLink) = channelGet('PLS', args.channel)   # mpv wants PLS
+    if hlsLink is not None:
+        print(f"{Fore.GREEN}Good news, everyone!  Lossless stream found.{Fore.WHITE}")
+        # because the HLS lossless tream is currently quite ahead of the low-quality icecast
+        print(f"\t {Fore.GREEN}Note that track titles will be delayed{Fore.WHITE}")
 
-    # launch mpv
+    # launch mpv, for either playback or track listing
     if not debugPlayer:
         # since we are using playlists, loop over the playlist to handle server oopses
         # or network issues; "force" re-evaluates each entry for validity each time 
@@ -351,13 +364,18 @@ def startStream(channel_name):
         psa += ['--no-video',
                 # '--no-config',        # doing this causes global plugins such as mpv-mpris to be skipped, which we do not want
                 '--keep-open=no',       # commonly overridden
-                '--loop-playlist=force',
-                '--cache=yes',
-                f'--cache-secs={cacheSecs}'
+                '--loop-playlist=force'
                 ]
+        if hlsLink is not None:
+            psa += ['--cache=yes',
+                    f'--cache-secs={cacheSecs}'
+                    ]
         psa += ['--network-timeout=30']
         # default of alsa/pipewire fixes glitches and ticks compared to pulse pipewire in some scenarios
-        psa += ["--audio-device="+args.audio]
+        if hlsLink is None:
+            psa += [f'--audio-device={args.audio}']
+        else:
+            psa += ["--audio-device=null"]
 
         # don't output playing timecode; further reduces compute on player
         psa += ["--quiet"]
@@ -372,12 +390,44 @@ def startStream(channel_name):
         except:
             print(Fore.RED + "FAILED")
             print("")
-            print(Fore.WHITE + "Playback encountered an unknown error.")
+            if hlsLink is not None:
+                print(Fore.WHITE + "Track Sync encountered an unknown error.")
+            else:
+                print(Fore.WHITE + "Playback encountered an unknown error.")
             clean_exit()
         print("Launched mpv")
 
     global sock
     sock = createUDS(udsock)
+
+    #######
+    if hlsLink is not None:
+        # start totally headless HLS playback
+        psa = ['mpv']
+        psa += ['--no-video',
+                # '--no-config',        # doing this causes global plugins such as mpv-mpris to be skipped, which we do not want
+                '--keep-open=no',       # commonly overridden
+                '--loop-playlist=force'
+        ]
+        psa += ['--network-timeout=30']
+        psa += [f'--audio-device={args.audio}']
+
+        # don't output playing timecode; further reduces compute on player
+        psa += ["--quiet"]
+        psa += [hlsLink]
+
+        global hlsstream
+        try:
+            hlsstream = subprocess.Popen(psa,
+                        stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                        shell=False)
+        except:
+            print(Fore.RED + "FAILED")
+            print("")
+            print(Fore.WHITE + "Playback encountered an unknown error.")
+            clean_exit()
+        print("Launched HLS playback")
+    #####
 
     print(Fore.RED + "----------------------------------------------------------------------")
     print(Fore.WHITE+"<Up> to Love a Track, <Down> to WTF?! a Track")
@@ -453,6 +503,8 @@ def startCast(channel_name):
 
     # don't output playing timecode; further reduces compute for parsing
     psa += ["--quiet"]
+    psa += [f"--input-ipc-server={udsock}"]
+    psa += ["--idle"]
 
     global playstream
     try:
@@ -638,7 +690,7 @@ t = Thread(target=skipper, daemon=True)
 t.start()
 
 
-# If Chromecast support is enabled, break off here
+# If Chromecast support is enabled and requested, do it
 if args.cast:
     if chromecast_support:
         startCast(args.channel)
@@ -647,8 +699,11 @@ if args.cast:
         print(Fore.WHITE + "Please install the pychromecast library.")
         clean_exit()
 else:
-    # Else, playback stream
+    # Else, playback stream locally
     startStream(args.channel)
+
+# playlist has been loaded and playback started
+#   now we just loop through the messages
 
 # Before we can request full metadata, we need the load to complete:
 #   not just file-loaded but playback-restart
@@ -677,9 +732,10 @@ while sock is not None and not ready:
 
 # request metadata and codec
 sockSendCmds(["get_property", "metadata"], mpvRequestID.METADATA.value)
-sockSendCmds(["get_property", "audio-codec-name"], mpvRequestID.CODEC.value)
-sockSendCmds(["get_property", "audio-out-params"], mpvRequestID.PARAMS.value)
-sockSendCmds(["get_property", "audio-bitrate"], mpvRequestID.BITRATE.value)
+if not hlsstream:
+    sockSendCmds(["get_property", "audio-codec-name"], mpvRequestID.CODEC.value)
+    sockSendCmds(["get_property", "audio-out-params"], mpvRequestID.PARAMS.value)
+    sockSendCmds(["get_property", "audio-bitrate"], mpvRequestID.BITRATE.value)
 
 # Hide cursor
 lastTrack = None
@@ -703,6 +759,12 @@ while sock is not None:
                     print(f"{Fore.CYAN}Channel: {Fore.WHITE}{event['data']['icy-name']}")
                 if "icy-genre" in event['data']:
                     print(f"{Fore.CYAN}Genre: {Fore.WHITE}{event['data']['icy-genre']}")
+
+                if hlsstream:   # our low-quality stream data is not requested
+                    # hls playback right now is FLAC
+                    print(f'{Fore.CYAN}Codec: {Fore.WHITE}flac')
+                    # no bitrate compute lag, begin tracking title changes
+                    sockSendCmds(["observe_property", mpvRequestID.METADATA_OBSERVE.value, "metadata"])
             elif "data" in event and "request_id" in event and event["request_id"] == mpvRequestID.PARAMS.value:
                 print(f"{Fore.CYAN}Audio: {Fore.WHITE}{event['data']['samplerate']}Hz {event['data']['hr-channels']} {event['data']['format']}")
             elif "data" in event and "request_id" in event and event["request_id"] == mpvRequestID.CODEC.value:
