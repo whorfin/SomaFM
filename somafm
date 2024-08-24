@@ -3,7 +3,7 @@
 # by whorfin
 # Licensed under the GPLv3, see "COPYING"
 #   inspired by "somafm" by Tom Nardi (MS3FGX@gmail.com)
-version = "2.2"
+version = "2.3"
 
 import re
 import os
@@ -96,6 +96,7 @@ class mpvRequestID(Enum):
     CODEC = 4
     PARAMS = 5
     BITRATE = 6
+    METADATA_OBSERVE = 7
 
 def createUDS(udsock):
     sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -665,6 +666,15 @@ while sock is not None and not ready:
     except socket.error as e:
         clean_exit()
 
+# the "metadata-update" event is deprecated, so we create an observer
+#   note the syntax is tricky - we pass the ID to the observe cmd directly; the requestid
+#   if used would be for the observe_property call itself, not the property-change which
+#   is fired, which has "id" instead of "request_id"
+# note that media-title does not fire, the 'icy-title' in metadata is what changes
+#   for regular icecast streams [non-HLS]
+# we don't actually begin observing the property until after we've displayed the Bitrate
+#sockSendCmds(["observe_property", mpvRequestID.METADATA_OBSERVE.value, "metadata"])
+
 # request metadata and codec
 sockSendCmds(["get_property", "metadata"], mpvRequestID.METADATA.value)
 sockSendCmds(["get_property", "audio-codec-name"], mpvRequestID.CODEC.value)
@@ -672,9 +682,9 @@ sockSendCmds(["get_property", "audio-out-params"], mpvRequestID.PARAMS.value)
 sockSendCmds(["get_property", "audio-bitrate"], mpvRequestID.BITRATE.value)
 
 # Hide cursor
+lastTrack = None
 print('\033[?25l', end="")
 while sock is not None:
-    lastTrack = None
     try:
         events = sock.recv(4096)
         events = events.decode('utf8')
@@ -700,12 +710,14 @@ while sock is not None:
             elif "request_id" in event and event["request_id"] == mpvRequestID.BITRATE.value:
                 if event["error"] == "success":
                     print(f"{Fore.CYAN}Bitrate: {Fore.WHITE}~{event['data'] // 1000} Kbps")
+                    # begin tracking title changes
+                    sockSendCmds(["observe_property", mpvRequestID.METADATA_OBSERVE.value, "metadata"])
                 else:
                     # not valid yet, try again
                     time.sleep(.1)
                     sockSendCmds(["get_property", "audio-bitrate"], mpvRequestID.BITRATE.value)
-            elif "event" in event and event["event"] == "metadata-update":
-                # rather than requesting media-title, which may not be set with Rusty's
+            elif "event" in event and event["event"] == "property-change" and event["id"] == mpvRequestID.METADATA_OBSERVE.value:
+                # rather than using media-title, which may not be set with Rusty's
                 # high-quality HLS flac streaming, pull the complete info from the API
                 # This allows us to also get the album name!  and we then set that back for
                 # playerctl
@@ -717,6 +729,7 @@ while sock is not None:
                 # ignore dupes
                 if track != lastTrack:
                     lastTrack = track
+
                     ## construct and print track name
                     # Print date before track
                     print("")
