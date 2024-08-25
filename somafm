@@ -3,7 +3,7 @@
 # by whorfin
 # Licensed under the GPLv3, see "COPYING"
 #   inspired by "somafm" by Tom Nardi (MS3FGX@gmail.com)
-version = "2.5"
+version = "2.5.1"
 
 import re
 import os
@@ -25,6 +25,8 @@ import uuid
 import json
 
 from enum import Enum
+
+import html
 
 # Optional Chromecast support, don't error if can't import
 try:
@@ -773,15 +775,20 @@ while sock is not None:
                     lastTrack = track
 
                     ## construct and print track name
+                    #   i've found a bunch of weird stuff, mostly unicode zero-width-spaces
+                    #   so first let's unescape things
+                    artist = html.unescape(track['artist'])
+                    title = html.unescape(track['title'])
+                    album = html.unescape(track['album'])
                     # Print date before track
                     print("")
                     print(f'{Fore.BLUE}{datetime.now().strftime("%H:%M:%S")}', end=' | ')
                 
-                    print(f"{Fore.GREEN}{track['artist']} {Fore.WHITE}- {Fore.YELLOW}{track['title']} {Fore.MAGENTA}[{track['album']}]", end="")
+                    print(f"{Fore.GREEN}{artist} {Fore.WHITE}- {Fore.YELLOW}{title} {Fore.MAGENTA}[{album}]", end="")
                     sys.stdout.flush()
 
                     # Track for logging, notifications and metadata
-                    track_desc = f"{track['artist']} - {track['title']} [{track['album']}]"
+                    track_desc = f"{artist} - {title} [{album}]"
 
                     # update metadata for playerctl and friends
                     sockSendCmds(["set_property", "force-media-title", track_desc])
