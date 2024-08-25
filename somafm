@@ -428,16 +428,18 @@ def getPlayingTrack():
     track = songs["songs"][0]
     return(track)
 
+# the "device=(null)" was presumably because iOS no longer allows [easily] deviceid; drop it
+#   Rusty asked for a "client=" to be set, so we do so
 def sendTrackLove(track):
     stid = channelGet('STID', args.channel)
 
-    rateRaw = session.get(f"{apiBase}/songlove.cgi?channel={stid}&artist={track['artist']}&title={track['title']}&device=(null)&lang=en-US", timeout=apiTimeout)
+    rateRaw = session.get(f"{apiBase}/songlove.cgi?channel={stid}&artist={track['artist']}&title={track['title']}&client=somafm(python)&lang=en-US", timeout=apiTimeout)
     # rateRaw.text should be 'OK\n'
 
 def sendTrackWTF(track):
     stid = channelGet('STID', args.channel)
 
-    rateRaw = session.get(f"{apiBase}/songwtf.cgi?channel={stid}&artist={track['artist']}&title={track['title']}&device=(null)&lang=en-US", timeout=apiTimeout)
+    rateRaw = session.get(f"{apiBase}/songwtf.cgi?channel={stid}&artist={track['artist']}&title={track['title']}&client=somafm(python)&lang=en-US", timeout=apiTimeout)
     # rateRaw.text should be 'OK\n'
 
 
