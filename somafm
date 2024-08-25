@@ -3,7 +3,7 @@
 # by whorfin
 # Licensed under the GPLv3, see "COPYING"
 #   inspired by "somafm" by Tom Nardi (MS3FGX@gmail.com)
-version = "2.5.2"
+version = "2.5.3"
 
 import re
 import os
@@ -346,6 +346,7 @@ def startStream(channel_name):
         cacheSecs = 4
         psa = ['mpv']
         psa += ['--no-video',
+                '--no-ytdl',
                 # '--no-config',        # doing this causes global plugins such as mpv-mpris to be skipped, which we do not want
                 '--keep-open=no',       # commonly overridden
                 '--loop-playlist=force'
@@ -389,6 +390,7 @@ def startStream(channel_name):
         # start totally headless HLS playback
         psa = ['mpv']
         psa += ['--no-video',
+                '--no-ytdl',
                 # '--no-config',        # doing this causes global plugins such as mpv-mpris to be skipped, which we do not want
                 '--keep-open=no',       # commonly overridden
                 '--loop-playlist=force'
@@ -492,6 +494,8 @@ def startCast(channel_name):
     # Start player with no audio to get track info
     psa = ['mpv']
     psa += ['--no-video']
+    psa += ['--no-ytdl']
+    psa += ['--keep-open-no']
     psa += ['--network-timeout=30']
     psa += ["--audio-device=null"]  # no audio
 
