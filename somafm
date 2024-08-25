@@ -3,7 +3,7 @@
 # by whorfin
 # Licensed under the GPLv3, see "COPYING"
 #   inspired by "somafm" by Tom Nardi (MS3FGX@gmail.com)
-version = "2.5.1"
+version = "2.5.2"
 
 import re
 import os
@@ -432,16 +432,24 @@ def getPlayingTrack():
 
 # the "device=(null)" was presumably because iOS no longer allows [easily] deviceid; drop it
 #   Rusty asked for a "client=" to be set, so we do so
-def sendTrackLove(track):
-    stid = channelGet('STID', args.channel)
+def createRatePayload(channel, track):
+    stid = channelGet('STID', channel)
+    payload = {'channel' : stid,
+                   'artist' : track['artist'],
+                   'title' : track['title'],
+                   'client' : "somafm(python)",
+                   'lang' : 'en-US'
+                   }
+    return(payload)
 
-    rateRaw = session.get(f"{apiBase}/songlove.cgi?channel={stid}&artist={track['artist']}&title={track['title']}&client=somafm(python)&lang=en-US", timeout=apiTimeout)
+def sendTrackLove(track):
+    ratePayload = createRatePayload(args.channel, track)
+    rateRaw = session.get(f"{apiBase}/songlove.cgi", params=ratePayload, timeout=apiTimeout)
     # rateRaw.text should be 'OK\n'
 
 def sendTrackWTF(track):
-    stid = channelGet('STID', args.channel)
-
-    rateRaw = session.get(f"{apiBase}/songwtf.cgi?channel={stid}&artist={track['artist']}&title={track['title']}&client=somafm(python)&lang=en-US", timeout=apiTimeout)
+    ratePayload = createRatePayload(args.channel, track)
+    rateRaw = session.get(f"{apiBase}/songwtf.cgi", params=ratePayload, timeout=apiTimeout)
     # rateRaw.text should be 'OK\n'
 
 
