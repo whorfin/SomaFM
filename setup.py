@@ -5,14 +5,14 @@ with open("pypi.md", "r") as fh:
 
 setuptools.setup(
     name="somafm",
-    version="1.73-whorfin",
+    version="2.5",
     scripts=['somafm'],
-    author="Tom Nardi",
-    author_email="MS3FGX@gmail.com",
-    description="A simple console player for SomaFM streams.",
+    author="Lord Whorfin",
+    author_email="whorfin@gmail.com",
+    description="A simple console player for SomaFM streams, with a focus on audio quality; uses mpv as audio backend",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/MS3FGX/SomaFM",
+    url="https://github.com/whorfin/SomaFM",
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",
