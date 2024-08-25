@@ -65,7 +65,7 @@ else:
 
 session = requests.Session()
 session.headers.update({
-    'User-Agent' : f'somafm/{version} (python)',
+    'User-Agent' : f'somafm/{version} (python; github.com/whorfin/SomaFM)',
     'Accept-Encoding' : 'gzip, deflate, br'
 })
 
