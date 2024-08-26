@@ -55,8 +55,12 @@ sock = None
 # create the locks we will need
 socketLock = Lock()     # protect against thread races in socket usage
 
-# we will need to manually launch player, and can watch it
-# mpv --no-video --keep-open=no --audio-device=alsa/pipewire --input-ipc-server=/tmp/mpvsocket --idle
+# we will need to manually launch player, and can watch its output/interact with it
+# $ mpv --no-video --keep-open=no --audio-device=alsa/pipewire --input-ipc-server=/tmp/mpvsocket --idle
+# can send commands, ie {"command":["get_property","track-list"]} or {"command":["get_property","metadata"]}
+
+# $ socat - /tmp/mpvsocket
+
 debugPlayer = False
 
 # socket to use
@@ -359,6 +363,7 @@ def startStream(channel_name):
         # default of alsa/pipewire fixes glitches and ticks compared to pulse pipewire in some scenarios
         if hlsLink is None:
             psa += [f'--audio-device={args.audio}']
+            psa += ['--audio-client-name=SomaFM']
         else:
             psa += ["--audio-device=null"]
 
@@ -397,6 +402,7 @@ def startStream(channel_name):
         ]
         psa += ['--network-timeout=30']
         psa += [f'--audio-device={args.audio}']
+        psa += ['--audio-client-name=SomaFM']
 
         # don't output playing timecode; further reduces compute on player
         psa += ["--quiet"]
