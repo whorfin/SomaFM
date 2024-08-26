@@ -3,7 +3,7 @@
 # by whorfin
 # Licensed under the GPLv3, see "COPYING"
 #   inspired by "somafm" by Tom Nardi (MS3FGX@gmail.com)
-version = "2.5.3"
+version = "2.5.4"
 
 import re
 import os
@@ -46,7 +46,7 @@ chromecast_name = "The Sound Pool"
 
 # File to store track listing
 track_file = "/tmp/somafm_tracks.txt"
-apiBase = "https://api.somafm.com/ios"  # no trailing slash please
+apiBase = "https://api.somafm.com"  # no trailing slash please
 apiTimeout = 5
 
 ## set up needed globals
