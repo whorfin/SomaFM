@@ -22,7 +22,7 @@ This means we are no longer parsing a "scraped" text GUI but instead using a doc
 
 Preliminary FLAC over HLS support is added.  Note that track titles are delayed from playback, due to offsets between the HLS and the icecast stream used for titles.
 
-Windows support is dropped; Unix Domain Sockets are awesome and I have no interest in arsing about with Windows named pipes.
+Windows support is dropped; Unix Domain Sockets are awesome and I have no interest in arsing about with Windows named pipes.  Likewise, perhaps moreso, with tty and termios.
 
 Previously, the main features I've added to `mpv` launch are robust reconnection by leveraging playlist looping, and fast start, along with `pipewire` support.
 Importantly, I've also fixed channel stream extraction parsing to always use the highest quality codec at the highest bitrate; previous logic was dependent on json ordering and assumed the first entry was the best, which incorrectly resulted in mp3.
