@@ -64,6 +64,7 @@ socketLock = Lock()     # protect against thread races in socket usage
 debugPlayer = False
 
 # socket to use
+#   we're playing a game here, on Windows this is in fact a named pipe
 if debugPlayer:
     udsock = "/tmp/mpvsocket"
 else:
@@ -96,6 +97,7 @@ def createUDS(udsock):
     sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     print(f'Connecting to {udsock}...', end="")
     sys.stdout.flush()
+
     # wait until mpv starts
     connected = False
     while not connected:
@@ -121,6 +123,10 @@ def sockSendCmds(cmds, request_id=None):
     strcmds = json.dumps(jcmds)
     with socketLock:
         sock.sendall(f'{strcmds}\n'.encode('utf-8'))
+
+def sockReceive():
+    events = sock.recv(16*1024)
+    return(events.decode('utf8'))
 
 # if we send tracks with "append-play", first track's force-media-title may not work
 #   so once we've got the playlist set, we need to start playback
@@ -710,8 +716,7 @@ else:
 ready = False
 while sock is not None and not ready:
     try:
-        events = sock.recv(4096)
-        events = events.decode('utf8')
+        events = sockReceive()
         for eventRaw in events.splitlines():
             event = json.loads(eventRaw)
             if args.verbose:
@@ -742,8 +747,7 @@ lastTrack = None
 print('\033[?25l', end="")
 while sock is not None:
     try:
-        events = sock.recv(4096)
-        events = events.decode('utf8')
+        events = sockReceive()
         for eventRaw in events.splitlines():
             event = json.loads(eventRaw)
             if args.verbose:
