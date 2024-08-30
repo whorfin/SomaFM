@@ -3,7 +3,7 @@
 # by whorfin
 # Licensed under the GPLv3, see "COPYING"
 #   inspired by "somafm" by Tom Nardi (MS3FGX@gmail.com)
-version = "2.5.5"
+version = "2.5.6"
 
 import re
 import os
@@ -775,7 +775,7 @@ while sock is not None:
                 print(f'{Fore.CYAN}Codec: {Fore.WHITE}{event["data"]}')
             elif "request_id" in event and event["request_id"] == mpvRequestID.BITRATE.value:
                 if event["error"] == "success":
-                    print(f"{Fore.CYAN}Bitrate: {Fore.WHITE}~{event['data'] // 1000} Kbps")
+                    print(f"{Fore.CYAN}Bitrate: {Fore.WHITE}~{round(event['data'] / 1000)} Kbps")
                     # begin tracking title changes
                     sockSendCmds(["observe_property", mpvRequestID.METADATA_OBSERVE.value, "metadata"])
                 else:

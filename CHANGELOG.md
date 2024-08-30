@@ -1,7 +1,7 @@
 # Version History
 
 ## August, 2024
-- Release as v2.5.5
+- Release as v2.5.6
 - Rewrite to use IPC rather than scraping stdout UX from `mpv`
 - Query tracks from API - provides album info, and works with HLS
 - Support LOVE and WTF?!
