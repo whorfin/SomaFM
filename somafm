@@ -3,7 +3,7 @@
 # by whorfin
 # Licensed under the GPLv3, see "COPYING"
 #   inspired by "somafm" by Tom Nardi (MS3FGX@gmail.com)
-version = "2.5.4"
+version = "2.5.5"
 
 import re
 import os
@@ -125,7 +125,7 @@ def sockSendCmds(cmds, request_id=None):
         sock.sendall(f'{strcmds}\n'.encode('utf-8'))
 
 def sockReceive():
-    events = sock.recv(16*1024)
+    events = sock.recv(64*1024)
     return(events.decode('utf8'))
 
 # if we send tracks with "append-play", first track's force-media-title may not work
