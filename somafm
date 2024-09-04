@@ -3,7 +3,7 @@
 # by whorfin
 # Licensed under the GPLv3, see "COPYING"
 #   inspired by "somafm" by Tom Nardi (MS3FGX@gmail.com)
-version = "2.7.1"
+version = "2.7.2"
 
 import re
 import os
@@ -222,7 +222,7 @@ def launchMPV(loopPlaylist = True, useAudio = True, directURL = None):
     psa += ["--no-input-default-bindings"]
     psa += ["--no-input-builtin-bindings"]
     psa += ["--load-osd-console=no"]
-    psa += ["--load-scripts=no"]
+    #psa += ["--load-scripts=no"]   # this also prevents mpv-mpris from working
     psa += ["--load-stats-overlay=no"]
     # finally...
     if not directURL:
