@@ -3,7 +3,7 @@
 # by whorfin
 # Licensed under the GPLv3, see "COPYING"
 #   inspired by "somafm" by Tom Nardi (MS3FGX@gmail.com)
-version = "2.6"
+version = "2.7"
 
 import re
 import os
@@ -55,20 +55,13 @@ sock = None
 # create the locks we will need
 socketLock = Lock()     # protect against thread races in socket usage
 
-# we will need to manually launch player, and can watch its output/interact with it
-# $ mpv --no-video --keep-open=no --audio-device=pipewire --input-ipc-server=/tmp/mpvsocket --idle
+# to play along...  
 # can send commands, ie {"command":["get_property","track-list"]} or {"command":["get_property","metadata"]}
-
-# $ socat - /tmp/mpvsocket
-
-debugPlayer = False
+#   unlike named pipes, each unix-domain socket connection gets its own session
+# $ socat - /tmp/mpvsocket.UUID
 
 # socket to use
-#   we're playing a game here, on Windows this is in fact a named pipe
-if debugPlayer:
-    udsock = "/tmp/mpvsocket"
-else:
-    udsock = f"/tmp/mpvsocket.{uuid.uuid1()}"
+udsock = f"/tmp/mpvsocket.{uuid.uuid1()}"
 
 session = requests.Session()
 session.headers.update({
@@ -187,6 +180,69 @@ def clean_exit():
     if args.file:
         track_log.close()
     sys.exit(0)
+
+# launch IPC-controlled, headless mpv
+# returns subprocess
+def launchMPV(loopPlaylist = True, useAudio = True, directURL = None):
+    # when using playlists, loop over the playlist to handle server oopses
+    # or network issues; "force" re-evaluates each entry for validity each time 
+    # through rather than caching the [possibly temporary] busted status
+    #
+    # The caching stuff here looks a little weird but ensures a 4s buffer
+    #   somafm allows fast download of approx 8 seconds, then it is "realtime"
+    #   (so we debugged with a 10sec cache setting)
+    # Adding "--demuxer-cache-wait=yes" won't start until cache is full (and is 
+    #   supposed to have no further influence during runtime), otherwise
+    #   this combo of flags (which oddly requires cache-pause-initial though it 
+    #   doesn't wait) will set things up to maintain a 4 second cache, reading
+    #   more if needed even while playing
+    cacheSecs = 4
+    psa = ['mpv']
+    psa += ['--no-video',
+            '--no-ytdl',
+            '--keep-open=no'       # commonly overridden
+            ]
+    if loopPlaylist:
+        psa += ['--loop-playlist=force' ]
+
+    if useAudio:
+        psa += ['--cache=yes',
+                f'--cache-secs={cacheSecs}'
+                ]
+        psa += [f'--audio-device={args.audio}']
+        psa += ['--audio-client-name=SomaFM']
+    else:
+        psa += ["--audio-device=null"]
+    psa += ['--network-timeout=30']
+
+    # basically headless; can't use --no-config as we need global plugins particularly mpv-mpris
+    psa += ["--no-terminal"]
+    psa += ["--no-osc"]
+    psa += ["--no-input-default-bindings"]
+    psa += ["--no-input-builtin-bindings"]
+    psa += ["--load-osd-console=no"]
+    psa += ["--load-scripts=no"]
+    psa += ["--load-stats-overlay=no"]
+    # finally...
+    if not directURL:
+        # start with IPC enabled, idling
+        psa += [f"--input-ipc-server={udsock}"]
+        psa += ["--idle"]
+    else:
+        # start as essentially an uncontrolled daemon, directly playing
+        psa += [directURL]
+
+    try:
+        sp = subprocess.Popen(psa,
+                    stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                    shell=False)
+    except:
+        print(Fore.RED + "FAILED")
+        print("")
+        print(Fore.WHITE + "Encountered an unknown error launching MPV.")
+        clean_exit()
+
+    return(sp)
 
 # Download master list of channels
 def downloadChannels():
@@ -340,91 +396,17 @@ def startStream(channel_name):
         print(f"\t {Fore.GREEN}Note that track titles will be delayed{Fore.WHITE}")
 
     # launch mpv, for either playback or track listing
-    if not debugPlayer:
-        # since we are using playlists, loop over the playlist to handle server oopses
-        # or network issues; "force" re-evaluates each entry for validity each time 
-        # through rather than caching the [possibly temporary] busted status
-        #
-        # The caching stuff here looks a little weird but ensures a 4s buffer
-        #   somafm allows fast download of approx 8 seconds, then it is "realtime"
-        #   (so we debugged with a 10sec cache setting)
-        # Adding "--demuxer-cache-wait=yes" won't start until cache is full (and is 
-        #   supposed to have no further influence during runtime), otherwise
-        #   this combo of flags (which oddly requires cache-pause-initial though it 
-        #   doesn't wait) will set things up to maintain a 4 second cache, reading
-        #   more if needed even while playing
-        cacheSecs = 4
-        psa = ['mpv']
-        psa += ['--no-video',
-                '--no-ytdl',
-                # '--no-config',        # doing this causes global plugins such as mpv-mpris to be skipped, which we do not want
-                '--keep-open=no',       # commonly overridden
-                '--loop-playlist=force'
-                ]
-        if hlsLink is not None:
-            psa += ['--cache=yes',
-                    f'--cache-secs={cacheSecs}'
-                    ]
-        psa += ['--network-timeout=30']
-        if hlsLink is None:
-            psa += [f'--audio-device={args.audio}']
-            psa += ['--audio-client-name=SomaFM']
-        else:
-            psa += ["--audio-device=null"]
-
-        # don't output playing timecode; further reduces compute on player
-        psa += ["--quiet"]
-        psa += [f"--input-ipc-server={udsock}"]
-        psa += ["--idle"]
-
-        global playstream
-        try:
-            playstream = subprocess.Popen(psa,
-                        stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                        shell=False)
-        except:
-            print(Fore.RED + "FAILED")
-            print("")
-            if hlsLink is not None:
-                print(Fore.WHITE + "Track Sync encountered an unknown error.")
-            else:
-                print(Fore.WHITE + "Playback encountered an unknown error.")
-            clean_exit()
-        print("Launched mpv")
+    global playstream
+    playstream = launchMPV(useAudio = hlsLink is None)
+    print("Launched mpv")
 
     global sock
     sock = createUDS(udsock)
 
-    #######
     if hlsLink is not None:
         # start totally headless HLS playback
-        psa = ['mpv']
-        psa += ['--no-video',
-                '--no-ytdl',
-                # '--no-config',        # doing this causes global plugins such as mpv-mpris to be skipped, which we do not want
-                '--keep-open=no',       # commonly overridden
-                '--loop-playlist=force'
-        ]
-        psa += ['--network-timeout=30']
-        psa += [f'--audio-device={args.audio}']
-        psa += ['--audio-client-name=SomaFM']
-
-        # don't output playing timecode; further reduces compute on player
-        psa += ["--quiet"]
-        psa += [hlsLink]
-
         global hlsstream
-        try:
-            hlsstream = subprocess.Popen(psa,
-                        stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                        shell=False)
-        except:
-            print(Fore.RED + "FAILED")
-            print("")
-            print(Fore.WHITE + "Playback encountered an unknown error.")
-            clean_exit()
-        print("Launched HLS playback")
-    #####
+        hlsstream = launchMPV(directURL = hlsLink)
 
     print(Fore.RED + "----------------------------------------------------------------------")
     print(Fore.WHITE+"<Up> to Love a Track, <Down> to WTF?! a Track")
@@ -503,26 +485,8 @@ def startCast(channel_name):
     browser.stop_discovery()
 
     # Start player with no audio to get track info
-    psa = ['mpv']
-    psa += ['--no-video']
-    psa += ['--no-ytdl']
-    psa += ['--keep-open-no']
-    psa += ['--network-timeout=30']
-    psa += ["--audio-device=null"]  # no audio
-
-    # don't output playing timecode; further reduces compute for parsing
-    psa += ["--quiet"]
-    psa += [f"--input-ipc-server={udsock}"]
-    psa += ["--idle"]
-
     global playstream
-    try:
-        playstream = subprocess.Popen(psa,
-                    stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                        shell=False)
-    except:
-        print(Fore.RED + "Track Sync Failed!")
-        clean_exit()
+    playstream = launchMPV(useAudio = False)
 
     # Create a UDS socket
     global sock
