@@ -3,7 +3,7 @@
 # by whorfin
 # Licensed under the GPLv3, see "COPYING"
 #   inspired by "somafm" by Tom Nardi (MS3FGX@gmail.com)
-version = "2.7"
+version = "2.7.1"
 
 import re
 import os
@@ -183,6 +183,7 @@ def clean_exit():
 
 # launch IPC-controlled, headless mpv
 # returns subprocess
+clientName = "SomaFM"
 def launchMPV(loopPlaylist = True, useAudio = True, directURL = None):
     # when using playlists, loop over the playlist to handle server oopses
     # or network issues; "force" re-evaluates each entry for validity each time 
@@ -210,7 +211,7 @@ def launchMPV(loopPlaylist = True, useAudio = True, directURL = None):
                 f'--cache-secs={cacheSecs}'
                 ]
         psa += [f'--audio-device={args.audio}']
-        psa += ['--audio-client-name=SomaFM']
+        psa += [f'--audio-client-name={clientName}']
     else:
         psa += ["--audio-device=null"]
     psa += ['--network-timeout=30']
