@@ -28,8 +28,6 @@ Previously, the main features I've added to `mpv` launch are robust reconnection
 Importantly, I've also fixed channel stream extraction parsing to always use the highest quality codec at the highest bitrate; previous logic was dependent on json ordering and assumed the first entry was the best, which incorrectly resulted in mp3.
 Desktop notification was yeeted along with channel icon download, and the channel list is downloaded directly on every launch, and not written to a file.  Caching this caused problems when channels were updated.
 
-If you aren't me and want to try this, try the `--audio auto` flag if you aren't rocking `pipewire`.
-
 ## Installation
 This forked version is not backported, and thus not on PyPi as is the original.  One thus needs to pull and install or run from this repository; no need to install if you don't want to, you can just run the `somafm` executable.
 
@@ -75,12 +73,11 @@ AAC quality is pushed, the playing channel is kept updated, and exiting will kic
 Tested on Chromecast 3rd Gen [NC2-6A5].
 
 #### --audio
-I love `pipewire`, and by default enable it without requiring config shenanigans.
-If you have yet to embrace the future, you can use this flag to chose your weapon.
-`auto` will give a go at auto-detecting based on your OS defaults, while `help` will probe and list available devices.
+The default `auto` will give a go at auto-detecting based on your OS defaults, while `help` will probe and list available devices.
+If you have very particular needs, you can use this flag to choose your weapon.
 
 ## Supported Player
-This program is a front-end, playback requires `mpv` to be installed:
+This program requires `mpv` to be installed, which it controls via IPC over UDS:
 * [mpv](https://mpv.io/)
 
 ## About SomaFM

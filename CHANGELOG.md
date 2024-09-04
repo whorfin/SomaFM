@@ -1,7 +1,7 @@
 # Version History
 
 ## August, 2024
-- Release as v2.5.6
+- Release as v2.6
 - Rewrite to use IPC rather than scraping stdout UX from `mpv`
 - Query tracks from API - provides album info, and works with HLS
 - Support LOVE and WTF?!
@@ -10,6 +10,8 @@
 - Grab audio information from player processing, not just icy-data - this supports HLS
 - Added support for lossless HLS playback with track information
 - Unescape metadata which remains with weird embedded escapes, especially unicode zero-width-space
+- Switch to "auto" audio device default; works for everybody
+    - and since `pipewire` replaces `alsa/pipewire` on more recent `mpv` versions
 - Last old-style Release as v1.88-whorfin
 
 ## July, 2024
