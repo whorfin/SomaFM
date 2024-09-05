@@ -1,7 +1,7 @@
 # Version History
 
 ## August, 2024
-- Release as v2.7.2
+- Release as v2.7.3
 - Rewrite to use IPC rather than scraping stdout UX from `mpv`
 - Query tracks from API - provides album info, and works with HLS
 - Support LOVE and WTF?!
@@ -12,6 +12,7 @@
 - Unescape metadata which remains with weird embedded escapes, especially unicode zero-width-space
 - Switch to "auto" audio device default; works for everybody
     - and since `pipewire` replaces `alsa/pipewire` on more recent `mpv` versions
+- Buffer usage tweaking for minimum memory
 - Last old-style Release as v1.88-whorfin
 
 ## July, 2024

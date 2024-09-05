@@ -3,7 +3,7 @@
 # by whorfin
 # Licensed under the GPLv3, see "COPYING"
 #   inspired by "somafm" by Tom Nardi (MS3FGX@gmail.com)
-version = "2.7.2"
+version = "2.7.3"
 
 import re
 import os
@@ -206,10 +206,15 @@ def launchMPV(loopPlaylist = True, useAudio = True, directURL = None):
     if loopPlaylist:
         psa += ['--loop-playlist=force' ]
 
+    # demuxer uses approx 520KiB for 4sec 48Khz stereo s16 FLAC
+    # default allows 150MiB; this is just for safety
+    # --demuxer-max-bytes=1MiB
+    psa += ['--cache=yes',
+            f'--cache-secs={cacheSecs}',
+            '--demuxer-max-bytes=1MiB',
+            '--demuxer-max-back-bytes=0' 
+            ]
     if useAudio:
-        psa += ['--cache=yes',
-                f'--cache-secs={cacheSecs}'
-                ]
         psa += [f'--audio-device={args.audio}']
         psa += [f'--audio-client-name={clientName}']
     else:
