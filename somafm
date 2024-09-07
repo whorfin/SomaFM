@@ -3,7 +3,7 @@
 # by whorfin
 # Licensed under the GPLv3, see "COPYING"
 #   inspired by "somafm" by Tom Nardi (MS3FGX@gmail.com)
-version = "2.7.4"
+version = "2.7.5"
 
 import re
 import os
@@ -104,6 +104,8 @@ def createUDS(udsock):
 
 # cmds is a list
 def sockSendCmds(cmds, request_id=None):
+    if sock is None:
+        return
     # since we send this via JSON, mpv's input/ipc.c tells us we have to be careful to create
     #   valid json.  So let's use the real json parser to handle escaping
     #
@@ -118,6 +120,8 @@ def sockSendCmds(cmds, request_id=None):
         sock.sendall(f'{strcmds}\n'.encode('utf-8'))
 
 def sockReceive():
+    if sock is None:
+        return
     events = sock.recv(64*1024)
     return(events.decode('utf8'))
 

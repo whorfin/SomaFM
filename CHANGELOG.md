@@ -1,5 +1,8 @@
 # Version History
 
+## September, 2024
+- Release as v2.7.5
+
 ## August, 2024
 - Release as v2.7.4
 - Rewrite to use IPC rather than scraping stdout UX from `mpv`
