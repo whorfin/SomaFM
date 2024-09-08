@@ -1,7 +1,7 @@
 # Version History
 
 ## September, 2024
-- Release as v2.7.5
+- Release as v2.7.6
 
 ## August, 2024
 - Release as v2.7.4
