@@ -764,7 +764,7 @@ while sock is not None:
                     # not valid yet, try again
                     print(f"{Fore.CYAN}.", end="")
                     sys.stdout.flush()
-                    time.sleep(.1)
+                    time.sleep(.25)
                     sockSendCmds(["get_property", "audio-bitrate"], mpvRequestID.BITRATE.value)
             elif "event" in event and event["event"] == "property-change" and event["id"] == mpvRequestID.METADATA_OBSERVE.value:
                 # rather than using media-title, which may not be set with Rusty's
