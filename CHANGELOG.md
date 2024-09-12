@@ -1,7 +1,8 @@
 # Version History
 
 ## September, 2024
-- Release as v2.7.6
+- Release as v2.7.7
+- Show progress of socket connection and bitrate computation
 
 ## August, 2024
 - Release as v2.7.4
