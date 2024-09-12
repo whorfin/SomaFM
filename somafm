@@ -100,7 +100,7 @@ def createUDS(udsock):
         except:
             print('.', end="")
             sys.stdout.flush()
-            time.sleep(.1)
+            time.sleep(.25)
     print("")
     return(sock)
 
