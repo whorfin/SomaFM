@@ -1,7 +1,7 @@
 # Version History
 
 ## September, 2024
-- Release as v2.7.8
+- Release as v2.7.10
 - Show progress of socket connection and bitrate computation
 - Detect `mpv` launch failure during socket connection; `mpv` in older distros such as focal lacked IPC control
 

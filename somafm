@@ -3,7 +3,7 @@
 # by whorfin
 # Licensed under the GPLv3, see "COPYING"
 #   inspired by "somafm" by Tom Nardi (MS3FGX@gmail.com)
-version = "2.7.8"
+version = "2.7.9"
 
 import re
 import os
@@ -149,13 +149,13 @@ def print_stop_time():
 
     # Print exit message
     print('\033[?25h')
-    print(Fore.RESET + "Playback stopped after {:02}:{:02}:{:02}".format(int(hours), int(minutes), int(seconds)))
+    print(f'{Fore.RESET}Playback stopped after {int(hours):02}:{int(minutes):02}:{int(seconds):02}')
 
 # Catch ctrl-c
 def signal_handler(sig, frame):
     # Re-enable cursor if it was turned off
     print('\033[?25h')
-    print(Fore.RED + "Force closing...")
+    print(f'{Fore.RED}Force closing...')
     print_stop_time()
     clean_exit()
 
@@ -257,9 +257,8 @@ def launchMPV(loopPlaylist = True, useAudio = True, directURL = None):
                     stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                     shell=False)
     except:
-        print(Fore.RED + "FAILED")
-        print("")
-        print(Fore.WHITE + "Encountered an unknown error launching MPV.")
+        print(f'{Fore.RED}FAILED')
+        print(f'{Fore.WHITE}Encountered an unknown error launching MPV.')
         clean_exit()
 
     return(sp)
@@ -297,11 +296,11 @@ def listChannels():
     channel_length = max(len(channel['title']) for channel in channel_list)
 
     # Loop through channels
-    print(Fore.RED + "------------------------------")
+    print(f'{Fore.RED}------------------------------')
     for channel in channel_list:
         # Adjust spacing to fit longest channel name
-        print(Fore.BLUE + '{cname:>{cwidth}}'.format(cwidth=channel_length, cname=channel['title']) + Fore.WHITE, end=' : ')
-        print(Fore.GREEN + channel['description'] + Fore.RESET)
+        print(f'{Fore.BLUE}{channel["title"]:>{channel_length}}{Fore.WHITE}', end=' : ')
+        print(f'{Fore.GREEN}{channel["description"]}{Fore.RESET}')
 
 # Show sorted list of listeners
 def showStats():
@@ -317,16 +316,16 @@ def showStats():
 
     # Sort and print results
     listener_list.sort(key=lambda x: x[1], reverse=True)
-    print(Fore.RED + "------------------------------")
+    print(f'{Fore.RED}------------------------------')
     for key, val in listener_list:
         # Total up listeners
         listeners = listeners + val
-        print(Fore.GREEN + '{:>4}'.format(val) + Fore.BLUE, end=' : ')
-        print(Fore.BLUE + key + Fore.RESET)
+        print(f'{Fore.GREEN}{val:>4}{Fore.BLUE}', end=' : ')
+        print(f'{Fore.BLUE}{key}{Fore.RESET}')
 
     # Print total line
-    print(Fore.YELLOW + '{:>4}'.format(listeners) + Fore.BLUE, end=' : ')
-    print(Fore.CYAN + "Total Listeners" + Fore.RESET)
+    print(f'{Fore.YELLOW}{listeners:>4}{Fore.BLUE}', end=' : ')
+    print(f'{Fore.CYAN}Total Listeners{Fore.RESET}')
 
 # Return information for given channel
 def channelGet(request, channel_name):
@@ -389,7 +388,7 @@ def channelGet(request, channel_name):
                             url = pls['url']
                             break
                 if url == None:
-                    print(Fore.RED + "No 'highest' quality AAC stream found, bailing")
+                    print(f'{Fore.RED}No "highest" quality AAC stream found, bailing')
                     clean_exit()
 
                 pls_file = session.get(url, timeout=apiTimeout)
@@ -398,12 +397,12 @@ def channelGet(request, channel_name):
                     if "File1" in line:
                         return(line.split('=')[1])
             else:
-                print(Fore.RED + "Unknown channel operation!")
+                print(f'{Fore.RED}Unknown channel operation!')
                 clean_exit()
 
     # If we get here, no match
-    print(Fore.RED + "Channel not found!")
-    print(Fore.WHITE + "Double check the name of the channel and try again.")
+    print(f'{Fore.RED}Channel not found!')
+    print(f'{Fore.WHITE}Double check the name of the channel and try again.')
     clean_exit()
 
 # Stream channel with media player
@@ -413,7 +412,7 @@ def startStream(channel_name):
     if hlsLink is not None:
         print(f"{Fore.GREEN}Good news, everyone!  Lossless stream found.{Fore.WHITE}")
         # because the HLS lossless tream is currently quite ahead of the low-quality icecast
-        print(f"\t {Fore.GREEN}Note that track titles will be delayed{Fore.WHITE}")
+        print(f"\t{Fore.GREEN}Note that track titles will be delayed{Fore.WHITE}")
 
     # launch mpv, for either playback or track listing
     global playstream
@@ -428,10 +427,10 @@ def startStream(channel_name):
         global hlsstream
         hlsstream = launchMPV(directURL = hlsLink)
 
-    print(Fore.RED + "----------------------------------------------------------------------")
-    print(Fore.WHITE+"<Up> to Love a Track, <Down> to WTF?! a Track")
-    print(Fore.WHITE+"<q> to Quit")
-    print(Fore.RED + "----------------------------------------------------------------------")
+    print(f'{Fore.RED}----------------------------------------------------------------------')
+    print(f'{Fore.WHITE}<Up> to Love a Track, <Down> to WTF?! a Track')
+    print(f'{Fore.WHITE}<q> to Quit')
+    print(f'{Fore.RED}----------------------------------------------------------------------')
 
     # send the URL and start
     sendPlaybackURL(stream_link)
@@ -480,9 +479,8 @@ def startCast(channel_name):
     sys.stdout.flush()
     chromecasts, browser = pychromecast.get_listed_chromecasts(friendly_names=[chromecast_name])
     if not chromecasts:
-        print(Fore.RED + "FAILED")
-        print("")
-        print(Fore.WHITE + f'No chromecast with name "{chromecast_name}" discovered')
+        print(f'{Fore.RED}FAILED')
+        print(f'{Fore.WHITE}No chromecast with name "{chromecast_name}" discovered')
         clean_exit()
     global cast
     cast = chromecasts[0]
@@ -496,9 +494,8 @@ def startCast(channel_name):
         stream.play_media(stream_url, 'audio/aac', stream_name, icon_url)
         stream.block_until_active()
     except:
-        print(Fore.RED + "FAILED")
-        print("")
-        print(Fore.WHITE + "Stream failed to start on Chromecast.")
+        print(f'{Fore.RED}FAILED')
+        print(f'{Fore.WHITE}Stream failed to start on Chromecast.')
         clean_exit()
     print("OK")
 
@@ -556,7 +553,7 @@ def skipper():
         elif k == 'q':
             # Re-enable cursor if it was turned off
             print('\033[?25h')
-            print(Fore.RED + "Shutting down...")
+            print(f'{Fore.RED}Shutting down...')
             print_stop_time()
             break
         elif k == 'up':
@@ -610,25 +607,25 @@ if args.about:
     # I can't decide which one I like best, so let's use them all!
     randlogo = randrange(3)
     if randlogo == 0:
-        print(Fore.BLUE + r"   _____                  " + Fore.GREEN + r"     ________  ___")
-        print(Fore.BLUE + r"  / ___/____  ____ ___  ____ _" + Fore.GREEN + r"/ ____/  |/  /")
-        print(Fore.BLUE + r"  \__ \/ __ \/ __ `__ \/ __ `" + Fore.GREEN + r"/ /_  / /|_/ / ")
-        print(Fore.BLUE + r" ___/ / /_/ / / / / / / /_/ " + Fore.GREEN + r"/ __/ / /  / /  ")
-        print(Fore.BLUE + r"/____/\____/_/ /_/ /_/\__,_" + Fore.GREEN + r"/_/   /_/  /_/   ")
+        print(rf"{Fore.BLUE}   _____                  {Fore.GREEN}     ________  ___")
+        print(rf"{Fore.BLUE}  / ___/____  ____ ___  ____ _{Fore.GREEN}/ ____/  |/  /")
+        print(rf"{Fore.BLUE}  \__ \/ __ \/ __ `__ \/ __ `{Fore.GREEN}/ /_  / /|_/ / ")
+        print(rf"{Fore.BLUE} ___/ / /_/ / / / / / / /_/ {Fore.GREEN}/ __/ / /  / /  ")
+        print(rf"{Fore.BLUE}/____/\____/_/ /_/ /_/\__,_{Fore.GREEN}/_/   /_/  /_/   ")
     elif randlogo == 1:
-        print(Fore.BLUE + r" __" + Fore.GREEN + r"                         ___")
-        print(Fore.BLUE + r"/ _\ ___  _ __ ___   __ _  " + Fore.GREEN + r"/ __\/\/\   ")
-        print(Fore.BLUE + r"\ \ / _ \| '_ ` _ \ / _` |" + Fore.GREEN + r"/ _\ /    \  ")
-        print(Fore.BLUE + r"_\ \ (_) | | | | | | (_| " + Fore.GREEN + r"/ /  / /\/\ \ ")
-        print(Fore.BLUE + r"\__/\___/|_| |_| |_|\__,_" + Fore.GREEN + r"\/   \/    \/ ")
+        print(rf"{Fore.BLUE} __{Fore.GREEN}                         ___")
+        print(rf"{Fore.BLUE}/ _\ ___  _ __ ___   __ _  {Fore.GREEN}/ __\/\/\   ")
+        print(rf"{Fore.BLUE}\ \ / _ \| '_ ` _ \ / _` |{Fore.GREEN}/ _\ /    \  ")
+        print(rf"{Fore.BLUE}_\ \ (_) | | | | | | (_| {Fore.GREEN}/ /  / /\/\ \ ")
+        print(rf"{Fore.BLUE}\__/\___/|_| |_| |_|\__,_{Fore.GREEN}\/   \/    \/ ")
     elif randlogo == 2:
-        print(Fore.BLUE + r" ______     ______     __    __     ______  " + Fore.GREEN + r"   ______   __    __    ")
-        print(Fore.BLUE + r"/\  ___\   /\  __ \   /\ '-./  \   /\  __ \ " + Fore.GREEN + r"  /\  ___\ /\ '-./  \   ")
-        print(Fore.BLUE + r"\ \___  \  \ \ \/\ \  \ \ \-./\ \  \ \  __ \ " + Fore.GREEN + r" \ \  __\ \ \ \-./\ \  ")
-        print(Fore.BLUE + r" \/\_____\  \ \_____\  \ \_\ \ \_\  \ \_\ \_\ " + Fore.GREEN + r" \ \_\    \ \_\ \ \_\ ")
-        print(Fore.BLUE + r"  \/_____/   \/_____/   \/_/  \/_/   \/_/\/_/ " + Fore.GREEN + r"  \/_/     \/_/  \/_/ ")
+        print(rf"{Fore.BLUE} ______     ______     __    __     ______  {Fore.GREEN}   ______   __    __    ")
+        print(rf"{Fore.BLUE}/\  ___\   /\  __ \   /\ '-./  \   /\  __ \ {Fore.GREEN}  /\  ___\ /\ '-./  \   ")
+        print(rf"{Fore.BLUE}\ \___  \  \ \ \/\ \  \ \ \-./\ \  \ \  __ \ {Fore.GREEN} \ \  __\ \ \ \-./\ \  ")
+        print(rf"{Fore.BLUE} \/\_____\  \ \_____\  \ \_\ \ \_\  \ \_\ \_\ {Fore.GREEN} \ \_\    \ \_\ \ \_\ ")
+        print(rf"{Fore.BLUE}  \/_____/   \/_____/   \/_/  \/_/   \/_/\/_/ {Fore.GREEN}  \/_/     \/_/  \/_/ ")
 
-    print(Fore.WHITE + "")
+    print(f'{Fore.WHITE}')
     print("SomaFM is a listener-supported Internet-only radio station.")
     print("")
     print("That means no advertising or annoying commercial interruptions. SomaFM's")
@@ -638,7 +635,7 @@ if args.about:
     print("If you like what you hear on SomaFM and want to help, please consider")
     print("visiting their site and making a donation.")
     print("")
-    print(Fore.BLUE + "https://somafm.com/support/")
+    print(f'{Fore.BLUE}https://somafm.com/support/')
     print("")
     clean_exit()
 
@@ -684,8 +681,8 @@ if args.cast:
     if chromecast_support:
         startCast(args.channel)
     else:
-        print(Fore.RED + "Chromecast Support Disabled!")
-        print(Fore.WHITE + "Please install the pychromecast library.")
+        print(f'{Fore.RED}Chromecast Support Disabled!')
+        print(f'{Fore.WHITE}Please install the pychromecast library.')
         clean_exit()
 else:
     # Else, playback stream locally
