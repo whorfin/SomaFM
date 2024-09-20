@@ -125,7 +125,10 @@ def sockSendCmds(cmds, request_id=None):
     # serialize and transmit
     strcmds = json.dumps(jcmds)
     with socketLock:
-        sock.sendall(f'{strcmds}\n'.encode('utf-8'))
+        try:
+            sock.sendall(f'{strcmds}\n'.encode('utf-8'))
+        except socket.error as e:
+            print(f'{Fore.RED}sockSendCmds: Error communicating with mpv:{e}')
 
 def sockReceive():
     if sock is None:
@@ -167,8 +170,8 @@ def clean_exit():
 
     global sock
     if sock is not None:
-        sock = None
         sockSendCmds(["quit"])
+        sock = None
     global playstream
     if playstream:
         playstream.terminate()  # just in case, and especially w/ audio error loop
