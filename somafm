@@ -3,7 +3,7 @@
 # by whorfin
 # Licensed under the GPLv3, see "COPYING"
 #   inspired by "somafm" by Tom Nardi (MS3FGX@gmail.com)
-version = "2.7.9"
+version = "2.7.10"
 
 import re
 import os
@@ -167,8 +167,8 @@ def clean_exit():
 
     global sock
     if sock is not None:
-        sockSendCmds(["quit"])
         sock = None
+        sockSendCmds(["quit"])
     global playstream
     if playstream:
         playstream.terminate()  # just in case, and especially w/ audio error loop
@@ -819,4 +819,5 @@ while sock is not None:
                 print(f"{Fore.CYAN}\t--------------------------", end="")
                 sys.stdout.flush()
     except socket.error as e:
+        print(f'{Fore.RED}Socket Error communicating with mpv:{e}')
         clean_exit()
