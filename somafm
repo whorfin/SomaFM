@@ -3,7 +3,7 @@
 # by whorfin
 # Licensed under the GPLv3, see "COPYING"
 #   inspired by "somafm" by Tom Nardi (MS3FGX@gmail.com)
-version = "2.7.10"
+version = "2.7.11"
 
 import re
 import os
@@ -86,14 +86,38 @@ class mpvRequestID(Enum):
     BITRATE = 6
     METADATA_OBSERVE = 7
 
+class Spinner:
+    active = False
+    i = 0
+
+    def spin(self, color=None):
+        cursor = '\\|/-'[self.i]
+        self.i += 1
+        self.i %= 3
+        if not self.active:
+            sys.stdout.write(' ')
+            if color:
+                sys.stdout.write(color)
+            self.active = True
+        sys.stdout.write(f'\b{cursor}')
+        sys.stdout.flush()
+
+    def spun(self):
+        if self.active:
+            sys.stdout.write(f'\b')
+            sys.stdout.flush()
+        # reset for next time, if there is a next time
+        self.active = False
+        self.i = 0
+
 # sp is the subprocess whose UDS IPC we are attempting to connect to
 def createUDS(udsock, sp):
     sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     print(f'Connecting to {udsock}', end="")
     sys.stdout.flush()
-
     # wait until mpv starts
     connected = False
+    spinner = Spinner()
     while not connected:
         try:
             sock.connect(udsock)
@@ -104,10 +128,10 @@ def createUDS(udsock, sp):
                 print(f'{Fore.RED}MPV returned {Fore.YELLOW}{sp.returncode}')
                 clean_exit()
 
-            print('.', end="")
-            sys.stdout.flush()
-            time.sleep(.25)
-    print("")
+            spinner.spin()
+            time.sleep(.1)
+    spinner.spun()
+    print(" ")
     return(sock)
 
 # cmds is a list
@@ -731,6 +755,7 @@ if not hlsstream:
 # Hide cursor
 lastTrack = None
 print('\033[?25l', end="")
+spinner = Spinner()
 while sock is not None:
     try:
         events = sockReceive()
@@ -763,14 +788,14 @@ while sock is not None:
                 print(f'{Fore.CYAN}Codec: {Fore.WHITE}{event["data"]}')
             elif "request_id" in event and event["request_id"] == mpvRequestID.BITRATE.value:
                 if event["error"] == "success":
-                    print(f"\n{Fore.CYAN}Bitrate: {Fore.WHITE}~{round(event['data'] / 1000)} Kbps")
+                    spinner.spun()
+                    print(f"{Fore.CYAN}Bitrate: {Fore.WHITE}~{round(event['data'] / 1000)} Kbps")
                     # begin tracking title changes
                     sockSendCmds(["observe_property", mpvRequestID.METADATA_OBSERVE.value, "metadata"])
                 else:
                     # not valid yet, try again
-                    print(f"{Fore.CYAN}.", end="")
-                    sys.stdout.flush()
-                    time.sleep(.25)
+                    spinner.spin(Fore.CYAN)
+                    time.sleep(.1)
                     sockSendCmds(["get_property", "audio-bitrate"], mpvRequestID.BITRATE.value)
             elif "event" in event and event["event"] == "property-change" and event["id"] == mpvRequestID.METADATA_OBSERVE.value:
                 # rather than using media-title, which may not be set with Rusty's
