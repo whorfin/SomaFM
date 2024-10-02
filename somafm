@@ -3,7 +3,7 @@
 # by whorfin
 # Licensed under the GPLv3, see "COPYING"
 #   inspired by "somafm" by Tom Nardi (MS3FGX@gmail.com)
-version = "2.7.11"
+version = "2.7.12"
 
 import re
 import os
@@ -63,9 +63,10 @@ socketLock = Lock()     # protect against thread races in socket usage
 # socket to use
 udsock = f"/tmp/mpvsocket.{uuid.uuid1()}"
 
+uAgent = f'somafm/{version} (python; github.com/whorfin/SomaFM)'
 session = requests.Session()
 session.headers.update({
-    'User-Agent' : f'somafm/{version} (python; github.com/whorfin/SomaFM)',
+    'User-Agent' : f'/{uAgent}',
     'Accept-Encoding' : 'gzip, deflate, br'
 })
 
@@ -223,7 +224,7 @@ def clean_exit():
 # launch IPC-controlled, headless mpv
 # returns subprocess
 clientName = "SomaFM"
-def launchMPV(loopPlaylist = True, useAudio = True, directURL = None):
+def launchMPV(loopPlaylist = True, useAudio = True, directURL = None, userAgent = uAgent):
     # when using playlists, loop over the playlist to handle server oopses
     # or network issues; "force" re-evaluates each entry for validity each time 
     # through rather than caching the [possibly temporary] busted status
@@ -238,6 +239,7 @@ def launchMPV(loopPlaylist = True, useAudio = True, directURL = None):
     #   more if needed even while playing
     cacheSecs = 4
     psa = ['mpv']
+    psa += [f'--http-header-fields=User-Agent: {userAgent}']
     psa += ['--no-video',
             '--no-ytdl',
             '--keep-open=no'       # commonly overridden
@@ -389,7 +391,7 @@ def channelGet(request, channel_name):
                         url = pls['url']
                         fmt = pls['format']
                         if fmt == "aac":
-                            return((pls['url'], None))
+                            return((url, None))
                 if url != None:
                     print(f"{Fore.RED}Could not find AAC stream, settling for {fmt}{Fore.WHITE}")
                     return((url, None))
