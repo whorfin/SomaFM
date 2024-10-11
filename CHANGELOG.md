@@ -1,5 +1,9 @@
 # Version History
 
+## October, 2024
+- Release as v2.7.13
+- Humanize runtime better
+
 ## September, 2024
 - Release as v2.7.12
 - Show progress of socket connection and bitrate computation
