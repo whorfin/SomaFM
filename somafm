@@ -3,7 +3,7 @@
 # by whorfin
 # Licensed under the GPLv3, see "COPYING"
 #   inspired by "somafm" by Tom Nardi (MS3FGX@gmail.com)
-version = "2.7.13"
+version = "2.7.14"
 
 import re
 import os
@@ -47,7 +47,7 @@ chromecast_name = "The Sound Pool"
 # File to store track listing
 track_file = "/tmp/somafm_tracks.txt"
 apiBase = "https://api.somafm.com"  # no trailing slash please
-apiTimeout = 5
+apiTimeout = 8
 
 ## set up needed globals
 sock = None
@@ -63,12 +63,15 @@ socketLock = Lock()     # protect against thread races in socket usage
 # socket to use
 udsock = f"/tmp/mpvsocket.{uuid.uuid1()}"
 
+# Set up a Session handler, with exponential backoff-based Retries
 uAgent = f'somafm/{version} (python; github.com/whorfin/SomaFM)'
 session = requests.Session()
 session.headers.update({
     'User-Agent' : f'/{uAgent}',
     'Accept-Encoding' : 'gzip, deflate, br'
 })
+retries = requests.adapters.Retry(total=64, backoff_factor=1, backoff_max=2*60, status_forcelist=[ 408, 500, 502, 503, 504 ])
+session.mount('https://', requests.adapters.HTTPAdapter(max_retries=retries))
 
 # global process handles
 playstream = None
@@ -851,5 +854,5 @@ while sock is not None:
                 print(f"{Fore.CYAN}\t--------------------------", end="")
                 sys.stdout.flush()
     except socket.error as e:
-        print(f'{Fore.RED}Socket Error communicating with mpv:{e}')
+        print(f'{Fore.RED}\nSocket Error communicating with mpv:{e}')
         clean_exit()
