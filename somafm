@@ -3,7 +3,7 @@
 # by whorfin
 # Licensed under the GPLv3, see "COPYING"
 #   inspired by "somafm" by Tom Nardi (MS3FGX@gmail.com)
-version = "2.7.14"
+version = "2.7.15"
 
 import re
 import os
@@ -121,6 +121,7 @@ def createUDS(udsock, sp):
     sys.stdout.flush()
     # wait until mpv starts
     connected = False
+    print('\033[?25l', end="") # Hide cursor
     spinner = Spinner()
     while not connected:
         try:
@@ -759,9 +760,7 @@ if not hlsstream:
     sockSendCmds(["get_property", "audio-out-params"], mpvRequestID.PARAMS.value)
     sockSendCmds(["get_property", "audio-bitrate"], mpvRequestID.BITRATE.value)
 
-# Hide cursor
 lastTrack = None
-print('\033[?25l', end="")
 spinner = Spinner()
 while sock is not None:
     try:

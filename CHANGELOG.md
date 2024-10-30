@@ -1,7 +1,7 @@
 # Version History
 
 ## October, 2024
-- Release as v2.7.14
+- Release as v2.7.15
 - Humanize runtime better
 - API query retry with exponential backoff
 
