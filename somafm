@@ -3,7 +3,7 @@
 # by whorfin
 # Licensed under the GPLv3, see "COPYING"
 #   inspired by "somafm" by Tom Nardi (MS3FGX@gmail.com)
-version = "2.7.15"
+version = "2.7.16"
 
 import re
 import os
@@ -97,7 +97,7 @@ class Spinner:
     def spin(self, color=None):
         cursor = '\\|/-'[self.i]
         self.i += 1
-        self.i %= 3
+        self.i %= 4
         if not self.active:
             sys.stdout.write(' ')
             if color:

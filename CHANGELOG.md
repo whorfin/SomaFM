@@ -1,5 +1,9 @@
 # Version History
 
+## November, 2024
+- Release as v2.7.16
+- Fix spinner
+
 ## October, 2024
 - Release as v2.7.15
 - Humanize runtime better
