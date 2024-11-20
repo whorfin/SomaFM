@@ -1,7 +1,7 @@
 # Version History
 
 ## November, 2024
-- Release as v2.7.16
+- Release as v2.7.17
 - Fix spinner
 
 ## October, 2024

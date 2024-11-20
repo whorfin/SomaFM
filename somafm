@@ -3,7 +3,7 @@
 # by whorfin
 # Licensed under the GPLv3, see "COPYING"
 #   inspired by "somafm" by Tom Nardi (MS3FGX@gmail.com)
-version = "2.7.16"
+version = "2.7.17"
 
 import re
 import os
@@ -53,7 +53,9 @@ apiTimeout = 8
 sock = None
 
 # create the locks we will need
-socketLock = Lock()     # protect against thread races in socket usage
+    # protect against thread races in socket usage; more for future
+socketLockW = Lock()
+socketLockR = Lock()
 
 # to play along...  
 # can send commands, ie {"command":["get_property","track-list"]} or {"command":["get_property","metadata"]}
@@ -153,7 +155,7 @@ def sockSendCmds(cmds, request_id=None):
 
     # serialize and transmit
     strcmds = json.dumps(jcmds)
-    with socketLock:
+    with socketLockW:
         try:
             sock.sendall(f'{strcmds}\n'.encode('utf-8'))
         except socket.error as e:
@@ -162,8 +164,12 @@ def sockSendCmds(cmds, request_id=None):
 def sockReceive():
     if sock is None:
         return
-    events = sock.recv(64*1024)
-    return(events.decode('utf8'))
+    with socketLockR:
+        try:
+            events = sock.recv(64*1024)
+            return(events.decode('utf8'))
+        except socket.error as e:
+            print(f'{Fore.RED}sockReceive: Error communicating with mpv:{e}')
 
 # if we send tracks with "append-play", first track's force-media-title may not work
 #   so once we've got the playlist set, we need to start playback
@@ -732,6 +738,8 @@ ready = False
 while sock is not None and not ready:
     try:
         events = sockReceive()
+        if not events:
+            continue
         for eventRaw in events.splitlines():
             event = json.loads(eventRaw)
             if args.verbose:
@@ -765,6 +773,8 @@ spinner = Spinner()
 while sock is not None:
     try:
         events = sockReceive()
+        if not events:
+            continue
         for eventRaw in events.splitlines():
             event = json.loads(eventRaw)
             if args.verbose:
