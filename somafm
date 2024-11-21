@@ -3,7 +3,7 @@
 # by whorfin
 # Licensed under the GPLv3, see "COPYING"
 #   inspired by "somafm" by Tom Nardi (MS3FGX@gmail.com)
-version = "2.7.17"
+version = "2.7.18"
 
 import re
 import os
@@ -74,6 +74,14 @@ session.headers.update({
 })
 retries = requests.adapters.Retry(total=64, backoff_factor=1, backoff_max=2*60, status_forcelist=[ 408, 500, 502, 503, 504 ])
 session.mount('https://', requests.adapters.HTTPAdapter(max_retries=retries))
+
+# wrap this for any other errors
+def sessionGet(*args, **kwargs):
+    try:
+        return session.get(*args, **kwargs, timeout=apiTimeout)
+    except requests.exceptions.RequestException as e:
+        print(f'{Fore.RED}<sessionGet: Error: {e}>', end="")
+        sys.stdout.flush()
 
 # global process handles
 playstream = None
@@ -312,7 +320,7 @@ def downloadChannels():
     sys.stdout.flush()
 
     try:
-        channel_raw = session.get(f"{apiBase}/channels.json", timeout=apiTimeout)
+        channel_raw = sessionGet(f"{apiBase}/channels.json")
     except requests.exceptions.Timeout:
         print("Timeout!")
         clean_exit()
@@ -432,7 +440,7 @@ def channelGet(request, channel_name):
                     print(f'{Fore.RED}No "highest" quality AAC stream found, bailing')
                     clean_exit()
 
-                pls_file = session.get(url, timeout=apiTimeout)
+                pls_file = sessionGet(url)
                 # Split out file URL
                 for line in pls_file.text.splitlines():
                     if "File1" in line:
@@ -480,7 +488,9 @@ def startStream(channel_name):
 
 def getPlayingTrack():
     stid = channelGet('STID', args.channel)
-    songsr = session.get(f"{apiBase}/songs/{stid}.json", timeout=apiTimeout)
+    songsr = sessionGet(f"{apiBase}/songs/{stid}.json")
+    if not songsr:
+        return
     songs = songsr.json()
     track = songs["songs"][0]
     return(track)
@@ -499,12 +509,12 @@ def createRatePayload(channel, track):
 
 def sendTrackLove(track):
     ratePayload = createRatePayload(args.channel, track)
-    rateRaw = session.get(f"{apiBase}/songlove.cgi", params=ratePayload, timeout=apiTimeout)
+    rateRaw = sessionGet(f"{apiBase}/songlove.cgi", params=ratePayload)
     # rateRaw.text should be 'OK\n'
 
 def sendTrackWTF(track):
     ratePayload = createRatePayload(args.channel, track)
-    rateRaw = session.get(f"{apiBase}/songwtf.cgi", params=ratePayload, timeout=apiTimeout)
+    rateRaw = sessionGet(f"{apiBase}/songwtf.cgi", params=ratePayload)
     # rateRaw.text should be 'OK\n'
 
 
@@ -599,14 +609,14 @@ def skipper():
             break
         elif k == 'up':
             track = getPlayingTrack()
-            if track != trackRated:
+            if track and track != trackRated:
                 trackRated = track
                 print(f"{Fore.RED} ♥", end="")
                 sys.stdout.flush()
                 sendTrackLove(track)
         elif k == 'down':
             track = getPlayingTrack()
-            if track != trackRated:
+            if track and track != trackRated:
                 trackRated = track
                 print(f"{Fore.RED} ⛔", end="")
                 sys.stdout.flush()
@@ -824,7 +834,7 @@ while sock is not None:
                 # there are situations where a metadata-update is sent, but track name proper
                 # has not updated, such as interstitial station IDs
                 # ignore dupes
-                if track != lastTrack:
+                if track and track != lastTrack:
                     lastTrack = track
 
                     ## construct and print track name
