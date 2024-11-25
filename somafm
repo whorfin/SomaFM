@@ -3,7 +3,7 @@
 # by whorfin
 # Licensed under the GPLv3, see "COPYING"
 #   inspired by "somafm" by Tom Nardi (MS3FGX@gmail.com)
-version = "3.0.0"
+version = "3.0.1"
 
 import re
 import os
@@ -603,6 +603,19 @@ def skipper():
                 print(f"{Fore.RED} ⛔", end="")
                 sys.stdout.flush()
                 sendTrackWTF(track)
+        elif k == 'return':
+            # force pull track info (don't update metadata, just print)
+            track = getPlayingTrack()
+            ## construct and print track name
+            #   i've found a bunch of weird stuff, mostly unicode zero-width-spaces
+            #   so first let's unescape things
+            artist = html.unescape(track['artist'])
+            title = html.unescape(track['title'])
+            album = html.unescape(track['album'])
+            # Print date before track
+            print("")
+            print(f'{Fore.CYAN}{datetime.now().strftime("%H:%M:%S")} | {Fore.GREEN}{artist} {Fore.WHITE}- {Fore.YELLOW}{title} {Fore.MAGENTA}[{album}]', end="")
+            sys.stdout.flush()
 
     clean_exit()
 
@@ -829,11 +842,9 @@ while sock is not None:
         artist = html.unescape(track['artist'])
         title = html.unescape(track['title'])
         album = html.unescape(track['album'])
-        # Print date before track
+
         print("")
-        print(f'{Fore.BLUE}{datetime.now().strftime("%H:%M:%S")}', end=' | ')
-    
-        print(f"{Fore.GREEN}{artist} {Fore.WHITE}- {Fore.YELLOW}{title} {Fore.MAGENTA}[{album}]", end="")
+        print(f'{Fore.BLUE}{datetime.now().strftime("%H:%M:%S")} | {Fore.GREEN}{artist} {Fore.WHITE}- {Fore.YELLOW}{title} {Fore.MAGENTA}[{album}]', end="")
         sys.stdout.flush()
 
         # Track for logging, notifications and metadata
