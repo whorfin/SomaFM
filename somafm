@@ -3,7 +3,7 @@
 # by whorfin
 # Licensed under the GPLv3, see "COPYING"
 #   inspired by "somafm" by Tom Nardi (MS3FGX@gmail.com)
-version = "3.0.1"
+version = "3.0.2"
 
 import re
 import os
@@ -52,6 +52,10 @@ apiTimeout = 8
 ## set up needed globals
 sock = None
 teve = Event()
+casting = False
+
+# stash terminal settings for later restoral
+termSettings = termios.tcgetattr(sys.stdin)
 
 # create the locks we will need
     # protect against thread races in socket usage; more for future
@@ -209,7 +213,6 @@ def signal_handler(sig, frame):
     clean_exit()
 
 # Do any necessary cleanup when closing on good terms
-termSettings = termios.tcgetattr(sys.stdin)
 def clean_exit():
     # Re-enable cursor if it was turned off
     print('\033[?25h')
@@ -227,6 +230,8 @@ def clean_exit():
         # stop playback and shut down cast app, back to ambient mode if enabled
         stream.stop()
         cast.quit_app()
+        global casting
+        casting = False
     termios.tcsetattr(sys.stdin, termios.TCSADRAIN, termSettings)
     try:
         os.unlink(udsock)
@@ -512,7 +517,7 @@ def startCast(channel_name):
     icon_url = channelGet('ICON_URL', channel_name)
 
     # Now try to communicate with CC
-    print("Connecting to", chromecast_name, end='...')
+    print(f'Connecting to "{chromecast_name}"', end='...')
     sys.stdout.flush()
     chromecasts, browser = pychromecast.get_listed_chromecasts(friendly_names=[chromecast_name])
     if not chromecasts:
@@ -528,7 +533,7 @@ def startCast(channel_name):
         # Start socket client's worker thread and wait for initial status update
         cast.wait()
         stream = cast.media_controller
-        stream.play_media(stream_url, 'audio/aac', stream_name, icon_url)
+        stream.play_media(stream_url, 'audio/aac', title=stream_name, thumb=icon_url)
         stream.block_until_active()
     except:
         print(f'{Fore.RED}FAILED')
@@ -537,14 +542,6 @@ def startCast(channel_name):
     print("OK")
 
     browser.stop_discovery()
-
-    # Create a UDS socket
-    global sock
-    sock = createUDS(udsock, playstream)
-
-    # send the URL and start
-    sendPlaybackURL(stream_url)
-    startPlay()
 
 def getkey():
     old_settings = termios.tcgetattr(sys.stdin)
@@ -725,6 +722,7 @@ t.start()
 if args.cast:
     if chromecast_support:
         startCast(args.channel)
+        casting = True
     else:
         print(f'{Fore.RED}Chromecast Support Disabled!')
         print(f'{Fore.WHITE}Please install the pychromecast library.')
@@ -822,7 +820,7 @@ if playstream:
 
 # Now we just sit and poll track changes and present track info
 lastTrack = None
-while sock is not None:
+while casting or sock is not None:
     # rather than using media-title, which may not be set with Rusty's
     # high-quality HLS flac streaming, pull the complete info from the API
     # This allows us to also get the album name!  and we then set that back for
