@@ -20,7 +20,11 @@ This is my fork.  Huge thanks to the original author.  I've removed support for 
 This branch is going further, as an `mpv`-only player, we now use unix-domain IPC sockets to communicate with `mpv`.
 This means we are no longer parsing a "scraped" text GUI but instead using a documented and supported API.  Not only is this correct, it establishes the base for dealing with upcoming FLAC and HLS support, Love/WTF activation (done!), and clean future work.
 
-Preliminary FLAC over HLS support is added.  Note that track titles are delayed from playback, due to offsets between the HLS and the icecast stream used for titles.
+Preliminary FLAC over HLS support is added.  Note that SomaFM seems to have changed again so at the moment this may not activate.
+
+After long experiments with metadata parsing, we now instead poll from track changes.
+This allows full artist/album/title for all mechanisms [regular, HLS and cast] without costing SomaFM a dupe play.
+Note that track titles are delayed from playback by up to 20 seconds, due to stochastic polling delay.
 
 Windows support is dropped; Unix Domain Sockets are awesome and I have no interest in arsing about with Windows named pipes.  Likewise, perhaps moreso, with tty and termios.
 

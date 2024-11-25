@@ -3,7 +3,7 @@
 # by whorfin
 # Licensed under the GPLv3, see "COPYING"
 #   inspired by "somafm" by Tom Nardi (MS3FGX@gmail.com)
-version = "2.7.18"
+version = "3.0.0"
 
 import re
 import os
@@ -15,11 +15,11 @@ import argparse
 import colorama
 import subprocess
 import time
-from random import randrange, choice
+import random
 from datetime import datetime
 from colorama import Fore, Style
 
-from threading import Thread, Lock
+from threading import Thread, Lock, Event
 import tty,termios   # sys and os already imported
 import uuid
 import json
@@ -51,6 +51,7 @@ apiTimeout = 8
 
 ## set up needed globals
 sock = None
+teve = Event()
 
 # create the locks we will need
     # protect against thread races in socket usage; more for future
@@ -59,6 +60,7 @@ socketLockR = Lock()
 
 # to play along...  
 # can send commands, ie {"command":["get_property","track-list"]} or {"command":["get_property","metadata"]}
+#{"command":["get_property","metadata/by-key/icy-notice1"]} 
 #   unlike named pipes, each unix-domain socket connection gets its own session
 # $ socat - /tmp/mpvsocket.UUID
 
@@ -85,7 +87,6 @@ def sessionGet(*args, **kwargs):
 
 # global process handles
 playstream = None
-hlsstream = None
 # global cast and stream handles if active
 cast = None
 stream = None
@@ -221,10 +222,6 @@ def clean_exit():
     if playstream:
         playstream.terminate()  # just in case, and especially w/ audio error loop
         playstream = None
-    global hlsstream
-    if hlsstream:
-        hlsstream.terminate()  # just in case, and especially w/ audio error loop
-        hlsstream = None
     global stream
     if stream:
         # stop playback and shut down cast app, back to ambient mode if enabled
@@ -239,12 +236,14 @@ def clean_exit():
     # Close log file
     if args.file:
         track_log.close()
+
+    teve.set()  # wake up and exit the polling delay
     sys.exit(0)
 
 # launch IPC-controlled, headless mpv
 # returns subprocess
 clientName = "SomaFM"
-def launchMPV(loopPlaylist = True, useAudio = True, directURL = None, userAgent = uAgent):
+def launchMPV(loopPlaylist = True, userAgent = uAgent):
     # when using playlists, loop over the playlist to handle server oopses
     # or network issues; "force" re-evaluates each entry for validity each time 
     # through rather than caching the [possibly temporary] busted status
@@ -277,11 +276,8 @@ def launchMPV(loopPlaylist = True, useAudio = True, directURL = None, userAgent 
             '--demuxer-max-back-bytes=16KiB',
             '--demuxer-donate-buffer=no'
             ]
-    if useAudio:
-        psa += [f'--audio-device={args.audio}']
-        psa += [f'--audio-client-name={clientName}']
-    else:
-        psa += ["--audio-device=null"]
+    psa += [f'--audio-device={args.audio}']
+    psa += [f'--audio-client-name={clientName}']
     psa += ['--network-timeout=30']
 
     # basically headless; can't use --no-config as we need global plugins particularly mpv-mpris
@@ -293,13 +289,9 @@ def launchMPV(loopPlaylist = True, useAudio = True, directURL = None, userAgent 
     #psa += ["--load-scripts=no"]   # this also prevents mpv-mpris from working
     psa += ["--load-stats-overlay=no"]
     # finally...
-    if not directURL:
-        # start with IPC enabled, idling
-        psa += [f"--input-ipc-server={udsock}"]
-        psa += ["--idle"]
-    else:
-        # start as essentially an uncontrolled daemon, directly playing
-        psa += [directURL]
+    # start with IPC enabled, idling
+    psa += [f"--input-ipc-server={udsock}"]
+    psa += ["--idle"]
 
     try:
         sp = subprocess.Popen(psa,
@@ -460,21 +452,15 @@ def startStream(channel_name):
     (stream_link, hlsLink) = channelGet('PLS', args.channel)   # mpv wants PLS
     if hlsLink is not None:
         print(f"{Fore.GREEN}Good news, everyone!  Lossless stream found.{Fore.WHITE}")
-        # because the HLS lossless tream is currently quite ahead of the low-quality icecast
-        print(f"\t{Fore.GREEN}Note that track titles will be delayed{Fore.WHITE}")
+        stream_link = hlsLink
 
-    # launch mpv, for either playback or track listing
+    # launch mpv
     global playstream
-    playstream = launchMPV(useAudio = hlsLink is None)
+    playstream = launchMPV()
     print("Launched mpv")
 
     global sock
     sock = createUDS(udsock, playstream)
-
-    if hlsLink is not None:
-        # start totally headless HLS playback
-        global hlsstream
-        hlsstream = launchMPV(directURL = hlsLink)
 
     print(f'{Fore.RED}----------------------------------------------------------------------')
     print(f'{Fore.WHITE}<Up> to Love a Track, <Down> to WTF?! a Track')
@@ -551,10 +537,6 @@ def startCast(channel_name):
     print("OK")
 
     browser.stop_discovery()
-
-    # Start player with no audio to get track info
-    global playstream
-    playstream = launchMPV(useAudio = False)
 
     # Create a UDS socket
     global sock
@@ -655,8 +637,7 @@ colorama.init()
 print(Style.BRIGHT, end='')
 
 if args.about:
-    # I can't decide which one I like best, so let's use them all!
-    randlogo = randrange(3)
+    randlogo = random.randrange(3)
     if randlogo == 0:
         print(rf"{Fore.BLUE}   _____                  {Fore.GREEN}     ________  ___")
         print(rf"{Fore.BLUE}  / ___/____  ____ ___  ____ _{Fore.GREEN}/ ____/  |/  /")
@@ -711,7 +692,7 @@ if args.file:
 
 # If -r option given and no channel provided, pick random channel from list
 if args.random and args.channel == None:
-    args.channel = choice([chan['title'] for chan in channel_list])
+    args.channel = random.choice([chan['title'] for chan in channel_list])
 elif args.channel == None:
     args.channel = default_chan
 
@@ -740,138 +721,130 @@ else:
     startStream(args.channel)
 
 # playlist has been loaded and playback started
-#   now we just loop through the messages
+#   now we just loop through the messages (if player is local, not cast)
 
-# Before we can request full metadata, we need the load to complete:
-#   not just file-loaded but playback-restart
-ready = False
-while sock is not None and not ready:
-    try:
-        events = sockReceive()
-        if not events:
-            continue
-        for eventRaw in events.splitlines():
-            event = json.loads(eventRaw)
-            if args.verbose:
-                print(eventRaw)
-            if "event" in event and event["event"] == "playback-restart":
-                ready = True
-    except socket.error as e:
-        clean_exit()
+# only do this if we're talking to a local stream player
+if playstream:
+    # Before we can request full metadata, we need the load to complete:
+    #   not just file-loaded but playback-restart
+    ready = False
+    while sock is not None and not ready:
+        try:
+            events = sockReceive()
+            if not events:
+                continue
+            for eventRaw in events.splitlines():
+                event = json.loads(eventRaw)
+                if args.verbose:
+                    print(eventRaw)
+                if "event" in event and event["event"] == "playback-restart":
+                    ready = True
+        except socket.error as e:
+            clean_exit()
 
-# the "metadata-update" event is deprecated, so we create an observer
-#   note the syntax is tricky - we pass the ID to the observe cmd directly; the requestid
-#   if used would be for the observe_property call itself, not the property-change which
-#   is fired, which has "id" instead of "request_id"
-# note that media-title does not fire, the 'icy-title' in metadata is what changes
-#   for regular icecast streams [non-HLS]
-# we don't actually begin observing the property until after we've displayed the Bitrate
-#sockSendCmds(["observe_property", mpvRequestID.METADATA_OBSERVE.value, "metadata"])
+    # This is particularly relevant when "auto" device selection is in effect
+    sockSendCmds(["get_property", "current-ao"], mpvRequestID.AO_DEVICE.value)
 
-# This is particularly relevant when "auto" device selection is in effect
-sockSendCmds(["get_property", "current-ao"], mpvRequestID.AO_DEVICE.value)
-
-# request metadata and codec
-sockSendCmds(["get_property", "metadata"], mpvRequestID.METADATA.value)
-if not hlsstream:
+    # request metadata and codec
+    sockSendCmds(["get_property", "metadata"], mpvRequestID.METADATA.value)
     sockSendCmds(["get_property", "audio-codec-name"], mpvRequestID.CODEC.value)
     sockSendCmds(["get_property", "audio-out-params"], mpvRequestID.PARAMS.value)
     sockSendCmds(["get_property", "audio-bitrate"], mpvRequestID.BITRATE.value)
 
-lastTrack = None
-spinner = Spinner()
-while sock is not None:
-    try:
-        events = sockReceive()
-        if not events:
-            continue
-        for eventRaw in events.splitlines():
-            event = json.loads(eventRaw)
-            if args.verbose:
-                print(event)
-            if "file_error" in event and event["file_error"] == "audio output initialization failed":
-                print(f"\n{Fore.RED}ERROR: failed to initialize audio driver {args.audio}")
-                clean_exit()
-            elif "data" in event and "request_id" in event and event["request_id"] == mpvRequestID.AO_DEVICE.value:
-                print(f"{Fore.MAGENTA}Audio Output Driver: {Fore.WHITE}{event['data']}")
-            elif "file_error" in event and event["file_error"] == "loading failed":
-                print(f"{Fore.RED}.", end="")
-                sys.stdout.flush()
-            elif "data" in event and "request_id" in event and event["request_id"] == mpvRequestID.METADATA.value:
-                if "icy-name" in event['data']:
-                    print(f"{Fore.CYAN}Channel: {Fore.WHITE}{event['data']['icy-name']}")
-                if "icy-genre" in event['data']:
-                    print(f"{Fore.CYAN}Genre: {Fore.WHITE}{event['data']['icy-genre']}")
-
-                if hlsstream:   # our low-quality stream data is not requested
-                    # hls playback right now is FLAC
-                    print(f'{Fore.CYAN}Codec: {Fore.WHITE}flac')
-                    # no bitrate compute lag, begin tracking title changes
-                    sockSendCmds(["observe_property", mpvRequestID.METADATA_OBSERVE.value, "metadata"])
-            elif "data" in event and "request_id" in event and event["request_id"] == mpvRequestID.PARAMS.value:
-                print(f"{Fore.CYAN}Audio: {Fore.WHITE}{event['data']['samplerate']}Hz {event['data']['hr-channels']} {event['data']['format']}")
-            elif "data" in event and "request_id" in event and event["request_id"] == mpvRequestID.CODEC.value:
-                print(f'{Fore.CYAN}Codec: {Fore.WHITE}{event["data"]}')
-            elif "request_id" in event and event["request_id"] == mpvRequestID.BITRATE.value:
-                if event["error"] == "success":
-                    spinner.spun()
-                    print(f"{Fore.CYAN}Bitrate: {Fore.WHITE}~{round(event['data'] / 1000)} Kbps")
-                    # begin tracking title changes
-                    sockSendCmds(["observe_property", mpvRequestID.METADATA_OBSERVE.value, "metadata"])
-                else:
-                    # not valid yet, try again
-                    spinner.spin(Fore.CYAN)
-                    time.sleep(.1)
-                    sockSendCmds(["get_property", "audio-bitrate"], mpvRequestID.BITRATE.value)
-            elif "event" in event and event["event"] == "property-change" and event["id"] == mpvRequestID.METADATA_OBSERVE.value:
-                # rather than using media-title, which may not be set with Rusty's
-                # high-quality HLS flac streaming, pull the complete info from the API
-                # This allows us to also get the album name!  and we then set that back for
-                # playerctl
-                # request the new title
-                track = getPlayingTrack()
-
-                # there are situations where a metadata-update is sent, but track name proper
-                # has not updated, such as interstitial station IDs
-                # ignore dupes
-                if track and track != lastTrack:
-                    lastTrack = track
-
-                    ## construct and print track name
-                    #   i've found a bunch of weird stuff, mostly unicode zero-width-spaces
-                    #   so first let's unescape things
-                    artist = html.unescape(track['artist'])
-                    title = html.unescape(track['title'])
-                    album = html.unescape(track['album'])
-                    # Print date before track
-                    print("")
-                    print(f'{Fore.BLUE}{datetime.now().strftime("%H:%M:%S")}', end=' | ')
-                
-                    print(f"{Fore.GREEN}{artist} {Fore.WHITE}- {Fore.YELLOW}{title} {Fore.MAGENTA}[{album}]", end="")
+    spinner = Spinner()
+    informed = False
+    while not informed and sock is not None:
+        try:
+            events = sockReceive()
+            if not events:
+                continue
+            for eventRaw in events.splitlines():
+                event = json.loads(eventRaw)
+                if args.verbose:
+                    print(event)
+                if "file_error" in event and event["file_error"] == "audio output initialization failed":
+                    print(f"\n{Fore.RED}ERROR: failed to initialize audio driver {args.audio}")
+                    clean_exit()
+                elif "data" in event and "request_id" in event and event["request_id"] == mpvRequestID.AO_DEVICE.value:
+                    print(f"{Fore.MAGENTA}Audio Output Driver: {Fore.WHITE}{event['data']}")
+                elif "file_error" in event and event["file_error"] == "loading failed":
+                    print(f"{Fore.RED}.", end="")
                     sys.stdout.flush()
-
-                    # Track for logging, notifications and metadata
-                    track_desc = f"{artist} - {title} [{album}]"
-
-                    # update metadata for playerctl and friends
-                    sockSendCmds(["set_property", "force-media-title", track_desc])
-
-                    # Log track to file if enabled
-                    if args.file:
-                        track_log.write(track_desc + "\n")
-            elif "data" in event and "request_id" in event and event["request_id"] == mpvRequestID.PLAYLIST.value:
-                # show playlist
-                print(f"{Fore.CYAN}\n\t--------------------------")
-                pls = event['data']
-                for ptrk in pls:
-                    url = ptrk['filename']
-                    if 'current' in ptrk and ptrk['current']:
-                        pt = f"\t{Fore.YELLOW}→"
+                elif "data" in event and "request_id" in event and event["request_id"] == mpvRequestID.METADATA.value:
+                    if "icy-name" in event['data']:
+                        print(f"{Fore.CYAN}Channel: {Fore.WHITE}{event['data']['icy-name']}")
+                    if "icy-genre" in event['data']:
+                        print(f"{Fore.CYAN}Genre: {Fore.WHITE}{event['data']['icy-genre']}")
+                elif "data" in event and "request_id" in event and event["request_id"] == mpvRequestID.PARAMS.value:
+                    print(f"{Fore.CYAN}Audio: {Fore.WHITE}{event['data']['samplerate']}Hz {event['data']['hr-channels']} {event['data']['format']}")
+                elif "data" in event and "request_id" in event and event["request_id"] == mpvRequestID.CODEC.value:
+                    print(f'{Fore.CYAN}Codec: {Fore.WHITE}{event["data"]}')
+                elif "request_id" in event and event["request_id"] == mpvRequestID.BITRATE.value:
+                    if event["error"] == "success":
+                        spinner.spun()
+                        print(f"{Fore.CYAN}Bitrate: {Fore.WHITE}~{round(event['data'] / 1000)} Kbps")
+                        # and now, drop out to track polling
+                        informed = True
                     else:
-                        pt = "\t "
-                    print(f"{pt}{Fore.CYAN}{url}")
-                print(f"{Fore.CYAN}\t--------------------------", end="")
-                sys.stdout.flush()
-    except socket.error as e:
-        print(f'{Fore.RED}\nSocket Error communicating with mpv:{e}')
-        clean_exit()
+                        # not valid yet, try again
+                        spinner.spin(Fore.CYAN)
+                        time.sleep(.1)
+                        sockSendCmds(["get_property", "audio-bitrate"], mpvRequestID.BITRATE.value)
+                elif "data" in event and "request_id" in event and event["request_id"] == mpvRequestID.PLAYLIST.value:
+                    # show playlist
+                    print(f"{Fore.CYAN}\n\t--------------------------")
+                    pls = event['data']
+                    for ptrk in pls:
+                        url = ptrk['filename']
+                        if 'current' in ptrk and ptrk['current']:
+                            pt = f"\t{Fore.YELLOW}→"
+                        else:
+                            pt = "\t "
+                        print(f"{pt}{Fore.CYAN}{url}")
+                    print(f"{Fore.CYAN}\t--------------------------", end="")
+                    sys.stdout.flush()
+        except socket.error as e:
+            print(f'{Fore.RED}\nSocket Error communicating with mpv:{e}')
+            clean_exit()
+
+# Now we just sit and poll track changes and present track info
+lastTrack = None
+while sock is not None:
+    # rather than using media-title, which may not be set with Rusty's
+    # high-quality HLS flac streaming, pull the complete info from the API
+    # This allows us to also get the album name!  and we then set that back for
+    # playerctl
+    # request the new title
+    track = getPlayingTrack()
+
+    # there are situations where a metadata-update is sent, but track name proper
+    # has not updated, such as interstitial station IDs
+    # ignore dupes
+    if track and track != lastTrack:
+        lastTrack = track
+
+        ## construct and print track name
+        #   i've found a bunch of weird stuff, mostly unicode zero-width-spaces
+        #   so first let's unescape things
+        artist = html.unescape(track['artist'])
+        title = html.unescape(track['title'])
+        album = html.unescape(track['album'])
+        # Print date before track
+        print("")
+        print(f'{Fore.BLUE}{datetime.now().strftime("%H:%M:%S")}', end=' | ')
+    
+        print(f"{Fore.GREEN}{artist} {Fore.WHITE}- {Fore.YELLOW}{title} {Fore.MAGENTA}[{album}]", end="")
+        sys.stdout.flush()
+
+        # Track for logging, notifications and metadata
+        track_desc = f"{artist} - {title} [{album}]"
+
+        # update metadata for playerctl and friends
+        sockSendCmds(["set_property", "force-media-title", track_desc])
+
+        # Log track to file if enabled
+        if args.file:
+            track_log.write(track_desc + "\n")
+
+    # random poll sleep
+    teve.wait(timeout=random.uniform(10,20))
