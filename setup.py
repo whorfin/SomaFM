@@ -5,7 +5,7 @@ with open("pypi.md", "r") as fh:
 
 setuptools.setup(
     name="somafm",
-    version="3.0.3",
+    version="3.0.4",
     scripts=['somafm'],
     author="Lord Whorfin",
     author_email="whorfin@gmail.com",

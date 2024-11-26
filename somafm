@@ -675,6 +675,9 @@ if args.about:
     print("")
     clean_exit()
 
+# Announce ourselves
+print(f"SomaFM v{version}")
+
 # declare the device
 if not args.cast:
     print("Using audio device: " + args.audio)
