@@ -1,7 +1,7 @@
 # Version History
 
 ## November, 2024
-- Release as v3.0.2
+- Release as v3.0.3
 - Switch to polling for track details; avoids issues with missed metadata observertions [recent mpv flatpak bug], simplifies code, handles HLS, and avoids duplicate playback stream in chromecast and HLS scenarios to save SomaFM un-needed stream play fees
 - Update pychromecast and test once more
 - Release as v2.7.18

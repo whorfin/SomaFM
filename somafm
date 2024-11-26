@@ -3,7 +3,7 @@
 # by whorfin
 # Licensed under the GPLv3, see "COPYING"
 #   inspired by "somafm" by Tom Nardi (MS3FGX@gmail.com)
-version = "3.0.2"
+version = "3.0.3"
 
 import re
 import os
@@ -395,12 +395,7 @@ def channelGet(request, channel_name):
                 if "hlsPlaylists" in channel:
                     for hpls in channel['hlsPlaylists']:
                         if hpls['quality'] == "lossless":
-                            url = hpls['url']
-                            if hpls['format'] == "flac-fmp4":
-                                for pls in channel['playlists']:
-                                    if pls['quality'] == "low":
-                                        url = pls['url']
-                                        return((pls['url'], hpls['url']))
+                            return((hpls['url'], True))
                 url = None
                 fmt = None
                 for pls in channel['playlists']:
@@ -408,10 +403,10 @@ def channelGet(request, channel_name):
                         url = pls['url']
                         fmt = pls['format']
                         if fmt == "aac":
-                            return((url, None))
+                            return((url, False))
                 if url != None:
                     print(f"{Fore.RED}Could not find AAC stream, settling for {fmt}{Fore.WHITE}")
-                    return((url, None))
+                    return((url, False))
                 print(f"{Fore.RED}No 'highest' quality stream found, bailing{Fore.WHITE}")
                 clean_exit()
             elif request == "NAME":
@@ -454,10 +449,9 @@ def channelGet(request, channel_name):
 # Stream channel with media player
 def startStream(channel_name):
     # Verify stream exists before starting stream
-    (stream_link, hlsLink) = channelGet('PLS', args.channel)   # mpv wants PLS
-    if hlsLink is not None:
+    (stream_link, isHLS) = channelGet('PLS', args.channel)   # mpv wants PLS
+    if isHLS:
         print(f"{Fore.GREEN}Good news, everyone!  Lossless stream found.{Fore.WHITE}")
-        stream_link = hlsLink
 
     # launch mpv
     global playstream
