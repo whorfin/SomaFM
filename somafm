@@ -818,16 +818,12 @@ if playstream:
 # Now we just sit and poll track changes and present track info
 lastTrack = None
 while casting or sock is not None:
-    # rather than using media-title, which may not be set with Rusty's
-    # high-quality HLS flac streaming, pull the complete info from the API
+    # rather than using media-title, which may not be accessible with Rusty's
+    # high-quality HLS flac streaming (or is completely unavailable when casting),
+    # pull the complete info from the API
     # This allows us to also get the album name!  and we then set that back for
     # playerctl
-    # request the new title
     track = getPlayingTrack()
-
-    # there are situations where a metadata-update is sent, but track name proper
-    # has not updated, such as interstitial station IDs
-    # ignore dupes
     if track and track != lastTrack:
         lastTrack = track
 
@@ -842,7 +838,7 @@ while casting or sock is not None:
         print(f'{Fore.BLUE}{datetime.now().strftime("%H:%M:%S")} | {Fore.GREEN}{artist} {Fore.WHITE}- {Fore.YELLOW}{title} {Fore.MAGENTA}[{album}]', end="")
         sys.stdout.flush()
 
-        # Track for logging, notifications and metadata
+        # Composite Track Name for logging, notifications and metadata
         track_desc = f"{artist} - {title} [{album}]"
 
         # update metadata for playerctl and friends
