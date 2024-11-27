@@ -3,7 +3,7 @@
 # by whorfin
 # Licensed under the GPLv3, see "COPYING"
 #   inspired by "somafm" by Tom Nardi (MS3FGX@gmail.com)
-version = "3.0.5"
+version = "3.0.6"
 
 import re
 import os
@@ -734,37 +734,10 @@ else:
 # only do this if we're talking to a local stream player
 if playstream:
     spinner = Spinner()
-    # Before we can request full metadata, we need the load to complete:
-    #   not just file-loaded but playback-restart
+
     ready = False
-    while sock is not None and not ready:
-        spinner.spin(color=Fore.WHITE)
-        try:
-            events = sockReceive()
-            if not events:
-                continue
-            for eventRaw in events.splitlines():
-                event = json.loads(eventRaw)
-                if args.verbose:
-                    print(eventRaw)
-                if "event" in event and event["event"] == "playback-restart":
-                    ready = True
-        except socket.error as e:
-            clean_exit()
-
-    spinner.spun()
-
-    # This is particularly relevant when "auto" device selection is in effect
-    sockSendCmds(["get_property", "current-ao"], mpvRequestID.AO_DEVICE.value)
-
-    # request metadata and codec
-    sockSendCmds(["get_property", "metadata"], mpvRequestID.METADATA.value)
-    sockSendCmds(["get_property", "audio-codec-name"], mpvRequestID.CODEC.value)
-    sockSendCmds(["get_property", "audio-out-params"], mpvRequestID.PARAMS.value)
-    sockSendCmds(["get_property", "audio-bitrate"], mpvRequestID.BITRATE.value)
-
-    informed = False
-    while not informed and sock is not None:
+    done = False
+    while not done and sock is not None:
         try:
             events = sockReceive()
             if not events:
@@ -773,7 +746,25 @@ if playstream:
                 event = json.loads(eventRaw)
                 if args.verbose:
                     print(event)
-                if "file_error" in event and event["file_error"] == "audio output initialization failed":
+                if not ready:
+                    # waiting for playback URL load to complete
+                    spinner.spin(color=Fore.WHITE)
+
+                if "event" in event and event["event"] == "playback-restart":
+                    # Before we can request full metadata, we need the load to complete:
+                    #   not just file-loaded but playback-restart
+                    ready = True
+                    spinner.spun()
+
+                    # This is particularly relevant when "auto" device selection is in effect
+                    sockSendCmds(["get_property", "current-ao"], mpvRequestID.AO_DEVICE.value)
+
+                    # request metadata and codec
+                    sockSendCmds(["get_property", "metadata"], mpvRequestID.METADATA.value)
+                    sockSendCmds(["get_property", "audio-codec-name"], mpvRequestID.CODEC.value)
+                    sockSendCmds(["get_property", "audio-out-params"], mpvRequestID.PARAMS.value)
+                    sockSendCmds(["get_property", "audio-bitrate"], mpvRequestID.BITRATE.value)
+                elif "file_error" in event and event["file_error"] == "audio output initialization failed":
                     print(f"\n{Fore.RED}ERROR: failed to initialize audio driver {args.audio}")
                     clean_exit()
                 elif "data" in event and "request_id" in event and event["request_id"] == mpvRequestID.AO_DEVICE.value:
@@ -795,7 +786,7 @@ if playstream:
                         spinner.spun()
                         print(f"{Fore.CYAN}Bitrate: {Fore.WHITE}~{round(event['data'] / 1000)} Kbps")
                         # and now, drop out to track polling
-                        informed = True
+                        done = True
                     else:
                         # not valid yet, try again
                         spinner.spin(Fore.CYAN)
