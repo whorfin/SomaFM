@@ -148,7 +148,7 @@ def createUDS(udsock, sp):
                 print(f'{Fore.RED}MPV returned {Fore.YELLOW}{sp.returncode}')
                 clean_exit()
 
-            spinner.spin()
+            spinner.spin(color=Fore.WHITE)
             time.sleep(.1)
     spinner.spun()
     print(" ")
