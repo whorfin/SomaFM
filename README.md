@@ -1,6 +1,6 @@
 ![feat_img](screenshots/playing.jpg)
 # Python SomaFM Player
-This simple player for [SomaFM](https://somafm.com/) keeps the distractions, and system resource utilization, to an absolute minimum. The look of this player was inspired equally by the excellent SomaFM terminal interfaces which were already available, and the 80's hacker aesthetic that one may find nostalgic for when listening to a Shoutcast stream at 2AM.
+This simple player for [SomaFM](https://somafm.com/) keeps the distractions, and system resource utilization, to an absolute minimum. The look of this player was inspired equally by the excellent SomaFM terminal interfaces which were already available, and the 80's hacker aesthetic that one may find nostalgic while listening to a Shoutcast stream at 2AM.
 
 Known to work on Linux (including Raspberry Pi, Chrome OS's Crostini and Chromium OS Universal Chroot Environment[^crouton]) and Mac OS.  As an added bonus, high quality Chromecast audio casting is supported.
 
@@ -16,8 +16,8 @@ For an up-to-date list of what's new, check the [Changelog](CHANGELOG.md)
 
 
 ## whorfinized
-This is my version.  Huge thanks to @MS3FGX for the inspiration and original version.  This has moved far enough along its own path to no longer be relevant as a fork.
-I've removed support for players I don't use, specializing the code for optimized `mpv` support.
+Huge thanks to @MS3FGX for the inspiration and original version.  This has moved far enough along its own path to no longer be relevant as a fork.
+Support for players we don't use has been removed, specializing the code for optimized `mpv` support.
 This branch is going further, as an `mpv`-only player, we now use unix-domain IPC sockets to communicate with `mpv`.
 This means we are no longer parsing a "scraped" text GUI but instead using a documented and supported API.  Not only is this correct, it establishes the base for dealing with upcoming FLAC and HLS support, Love/WTF activation (done!), and clean future work.
 
@@ -27,14 +27,14 @@ After long experiments with metadata parsing, we now instead poll the API for tr
 This allows full artist/album/title for all mechanisms [regular, HLS and cast] without costing SomaFM a dupe play.
 Note that track titles are delayed from playback by up to 20 seconds, due to stochastic polling delay.
 
-Windows support is dropped; Unix Domain Sockets are awesome and I have no interest in arsing about with Windows named pipes.  Likewise, perhaps moreso, with tty and termios.
+Windows support is dropped; Unix Domain Sockets are awesome and we have no interest in arsing about with Windows named pipes.  Likewise, perhaps moreso, with tty and termios.
 
-Previously, the main features I've added to `mpv` launch are robust reconnection by leveraging playlist looping, and fast start, along with `pipewire` support.
-Importantly, I've also fixed channel stream extraction parsing to always use the highest quality codec at the highest bitrate; previous logic was dependent on json ordering and assumed the first entry was the best, which incorrectly resulted in mp3.
+Previously, the main features added to `mpv` launch were robust reconnection by leveraging playlist looping, and fast start, along with `pipewire` support.
+Importantly, channel stream extraction parsing is improved to always use the highest quality codec at the highest bitrate; previous logic was dependent on json ordering and assumed the first entry was the best, which incorrectly resulted in mp3.
 Desktop notification was yeeted along with channel icon download, and the channel list is downloaded directly on every launch, and not written to a file.  Caching this caused problems when channels were updated.
 
 ## Installation
-This forked version is not backported, and thus not on PyPi as is the original.  One thus needs to pull and install or run from this repository; no need to install if you don't want to, you can just run the `somafm` executable.
+This version is not the same as the version of similar name on PyPi.  One thus needs to clone and install or run from this repository; no need to install if you don't want to, you can just run the `somafm` executable.
 
 ## Dependencies
 At minimum, this program requires Python 3 versions of the following libraries:

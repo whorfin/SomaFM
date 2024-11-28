@@ -7,6 +7,7 @@
 - Release as v2.7.18
 - Fix spinner
 - Various robustness improvements
+- Unforked
 
 ## October, 2024
 - Release as v2.7.15
