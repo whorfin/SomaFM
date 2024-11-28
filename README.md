@@ -23,7 +23,7 @@ This means we are no longer parsing a "scraped" text GUI but instead using a doc
 
 FLAC over HLS is now supported.  Note that SomaFM seems to have changed publication formation, so at the moment this may not activate.
 
-After long experiments with metadata parsing, we now instead poll from track changes.
+After long experiments with metadata parsing, we now instead poll the API for track changes.
 This allows full artist/album/title for all mechanisms [regular, HLS and cast] without costing SomaFM a dupe play.
 Note that track titles are delayed from playback by up to 20 seconds, due to stochastic polling delay.
 
