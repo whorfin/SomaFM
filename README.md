@@ -16,11 +16,12 @@ For an up-to-date list of what's new, check the [Changelog](CHANGELOG.md)
 
 
 ## whorfinized
-This is my fork.  Huge thanks to the original author.  I've removed support for players I don't use, specializing the code for optimized `mpv` support.
+This is my version.  Huge thanks to @MS3FGX for the inspiration and original version.  This has moved far enough along its own path to no longer be relevant as a fork.
+I've removed support for players I don't use, specializing the code for optimized `mpv` support.
 This branch is going further, as an `mpv`-only player, we now use unix-domain IPC sockets to communicate with `mpv`.
 This means we are no longer parsing a "scraped" text GUI but instead using a documented and supported API.  Not only is this correct, it establishes the base for dealing with upcoming FLAC and HLS support, Love/WTF activation (done!), and clean future work.
 
-Preliminary FLAC over HLS support is added.  Note that SomaFM seems to have changed again so at the moment this may not activate.
+FLAC over HLS is now supported.  Note that SomaFM seems to have changed publication formation, so at the moment this may not activate.
 
 After long experiments with metadata parsing, we now instead poll from track changes.
 This allows full artist/album/title for all mechanisms [regular, HLS and cast] without costing SomaFM a dupe play.
