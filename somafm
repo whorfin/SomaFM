@@ -586,14 +586,14 @@ def skipper():
                 trackRated = track
                 print(f"\b{Fore.RED} ♥  {Fore.WHITE}", end="")
                 sys.stdout.flush()
-                #sendTrackLove(track)
+                sendTrackLove(track)
         elif k == 'down':
             track = getPlayingTrack()
             if track and track != trackRated:
                 trackRated = track
                 print(f"\b{Fore.RED} ⛔  {Fore.WHITE}", end="")
                 sys.stdout.flush()
-                #sendTrackWTF(track)
+                sendTrackWTF(track)
         elif k == 'return':
             # force pull track info (don't update metadata, just print)
             track = getPlayingTrack()
