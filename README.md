@@ -25,7 +25,7 @@ FLAC over HLS is now supported.  Note that SomaFM seems to have changed publicat
 
 After long experiments with metadata parsing, we now instead poll the API for track changes.
 This allows full artist/album/title for all mechanisms [regular, HLS and cast] without costing SomaFM a dupe play.
-Note that track titles are delayed from playback by up to 20 seconds, due to stochastic polling delay.
+Note that track titles may be delayed from playback by up to 20 seconds, due to stochastic polling delay.
 
 Windows support is dropped; Unix Domain Sockets are awesome and we have no interest in arsing about with Windows named pipes.  Likewise, perhaps moreso, with tty and termios.
 

@@ -3,7 +3,7 @@
 # by whorfin
 # Licensed under the GPLv3, see "COPYING"
 #   inspired by "somafm" by Tom Nardi (MS3FGX@gmail.com)
-version = "3.0.6"
+version = "3.0.7"
 
 import re
 import os
@@ -584,16 +584,16 @@ def skipper():
             track = getPlayingTrack()
             if track and track != trackRated:
                 trackRated = track
-                print(f"{Fore.RED} ♥", end="")
+                print(f"\b{Fore.RED} ♥  {Fore.WHITE}", end="")
                 sys.stdout.flush()
-                sendTrackLove(track)
+                #sendTrackLove(track)
         elif k == 'down':
             track = getPlayingTrack()
             if track and track != trackRated:
                 trackRated = track
-                print(f"{Fore.RED} ⛔", end="")
+                print(f"\b{Fore.RED} ⛔  {Fore.WHITE}", end="")
                 sys.stdout.flush()
-                sendTrackWTF(track)
+                #sendTrackWTF(track)
         elif k == 'return':
             # force pull track info (don't update metadata, just print)
             track = getPlayingTrack()
@@ -605,7 +605,7 @@ def skipper():
             album = html.unescape(track['album'])
             # Print date before track
             print("")
-            print(f'{Fore.CYAN}{datetime.now().strftime("%H:%M:%S")} | {Fore.GREEN}{artist} {Fore.WHITE}- {Fore.YELLOW}{title} {Fore.MAGENTA}[{album}]', end="")
+            print(f'{Fore.CYAN}{datetime.now().strftime("%H:%M:%S")} | {Fore.GREEN}{artist} {Fore.WHITE}- {Fore.YELLOW}{title} {Fore.MAGENTA}[{album}]  {Fore.WHITE}', end="")
             sys.stdout.flush()
 
     clean_exit()
@@ -809,6 +809,8 @@ if playstream:
             print(f'{Fore.RED}\nSocket Error communicating with mpv:{e}')
             clean_exit()
 
+spinner.spun()  # just in case
+
 # Now we just sit and poll track changes and present track info
 lastTrack = None
 while casting or sock is not None:
@@ -828,8 +830,9 @@ while casting or sock is not None:
         title = html.unescape(track['title'])
         album = html.unescape(track['album'])
 
+        spinner.spun()
         print("")
-        print(f'{Fore.BLUE}{datetime.now().strftime("%H:%M:%S")} | {Fore.GREEN}{artist} {Fore.WHITE}- {Fore.YELLOW}{title} {Fore.MAGENTA}[{album}]', end="")
+        print(f'{Fore.BLUE}{datetime.now().strftime("%H:%M:%S")} | {Fore.GREEN}{artist} {Fore.WHITE}- {Fore.YELLOW}{title} {Fore.MAGENTA}[{album}] ', end="")
         sys.stdout.flush()
 
         # Composite Track Name for logging, notifications and metadata
@@ -841,6 +844,8 @@ while casting or sock is not None:
         # Log track to file if enabled
         if args.file:
             track_log.write(track_desc + "\n")
+    else:
+        spinner.spin(Fore.WHITE)
 
     # random poll sleep
     teve.wait(timeout=random.uniform(10,20))
