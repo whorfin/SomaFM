@@ -3,7 +3,7 @@
 # by whorfin
 # Licensed under the GPLv3, see "COPYING"
 #   inspired by "somafm" by Tom Nardi (MS3FGX@gmail.com)
-version = "3.1.0"
+version = "3.1.1"
 
 import re
 import os
@@ -123,7 +123,7 @@ class Spinner:
 
     def spun(self):
         if self.active:
-            sys.stdout.write(f'\b')
+            sys.stdout.write('\b')
             sys.stdout.flush()
         # reset for next time, if there is a next time
         self.active = False
@@ -604,7 +604,7 @@ def skipper():
             title = html.unescape(track['title'])
             album = html.unescape(track['album'])
             # Print date before track
-            print("")
+            print("\b ")    # eat previous spinner
             print(f'{Fore.CYAN}{datetime.now().strftime("%H:%M:%S")} | {Fore.GREEN}{artist} {Fore.WHITE}- {Fore.YELLOW}{title} {Fore.MAGENTA}[{album}]  {Fore.WHITE}', end="")
             sys.stdout.flush()
 
@@ -809,8 +809,6 @@ if playstream:
             print(f'{Fore.RED}\nSocket Error communicating with mpv:{e}')
             clean_exit()
 
-spinner.spun()  # just in case
-
 # Now we just sit and poll track changes and present track info
 lastTrack = None
 while casting or sock is not None:
@@ -831,7 +829,7 @@ while casting or sock is not None:
         album = html.unescape(track['album'])
 
         spinner.spun()
-        print("")
+        print(" ")
         print(f'{Fore.BLUE}{datetime.now().strftime("%H:%M:%S")} | {Fore.GREEN}{artist} {Fore.WHITE}- {Fore.YELLOW}{title} {Fore.MAGENTA}[{album}] ', end="")
         sys.stdout.flush()
 
