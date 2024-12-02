@@ -1,14 +1,14 @@
 import setuptools
 
-with open("pypi.md", "r") as fh:
+with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="somafm",
-    version="3.1.1",
+    name="pysomafm",
+    version="3.1.2",
     scripts=['somafm'],
     author="Lord Whorfin",
-    author_email="whorfin@gmail.com",
+    author_email="whorfin+somafm@gmail.com",
     description="A simple console player for SomaFM streams, with a focus on audio quality; uses mpv as audio backend",
     long_description=long_description,
     long_description_content_type="text/markdown",
