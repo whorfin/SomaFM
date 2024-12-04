@@ -71,7 +71,7 @@ Download the latest master list of SomaFM channels and display their description
 This option shows the number of listeners for each currently online SomaFM channel, along with a total listener count.
 
 #### --cast
-If you have the [pychromecast](https://github.com/balloob/pychromecast) library installed, this option starts playback of the given SomaFM channel on the given Chromecast device. If no device name is given, the default specified by the `chromecast_name` variable will be used.
+If you have the [pychromecast](https://github.com/balloob/pychromecast) library installed, this option starts playback of the given SomaFM channel on the given Chromecast device. 
 
 AAC quality is pushed, the playing channel is kept updated, and exiting will kick the Chromecast device back to the "ambient" screen if enabled.
 

@@ -3,7 +3,7 @@
 # by whorfin
 # Licensed under the GPLv3, see "COPYING"
 #   inspired by "somafm" by Tom Nardi (MS3FGX@gmail.com)
-version = "3.1.2"
+version = "3.1.3"
 
 import re
 import os
@@ -615,7 +615,7 @@ parser = argparse.ArgumentParser(description='Simple Python 3 player for SomaFM,
 parser.add_argument('-l', '--list', action='store_true', help='Download and display list of channels')
 parser.add_argument('-s', '--stats', action='store_true', help='Display current listener stats')
 parser.add_argument('-a', '--about', action='store_true', help='Show information about SomaFM')
-parser.add_argument('-c', '--cast', nargs='?', default=False, help='Start playback on Chromecast')
+parser.add_argument('-c', '--cast', nargs='?', default=False, const=None, metavar='cast-device', help=f'Start playback on Chromecast, default device is "{chromecast_name}"')
 parser.add_argument('-f', '--file', action='store_true', help='Enable experimental track logging for this session')
 parser.add_argument('-v', '--verbose', action='store_true', help='For debug use, prints all events from mpv.')
 parser.add_argument('-r', '--random', action='store_true', help='Choose a random channel at startup')
