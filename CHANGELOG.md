@@ -1,12 +1,16 @@
 # Version History
 
+## December, 2024
+- Release as v3.1.4
+- Fix spinner
+- Fix event race
+
 ## November, 2024
-- Release as v3.1.3
+- Release as v3.1.0
 - Switch to polling for track details; avoids issues with missed metadata observertions [recent mpv flatpak bug], simplifies code, handles HLS, and avoids duplicate playback stream in chromecast and HLS scenarios to save SomaFM un-needed stream play fees
 - Indicate polling w/ spinner
 - Update pychromecast and test once more
 - Release as v2.7.18
-- Fix spinner
 - Various robustness improvements
 - Unforked
 

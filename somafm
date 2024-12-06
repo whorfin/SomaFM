@@ -3,7 +3,7 @@
 # by whorfin
 # Licensed under the GPLv3, see "COPYING"
 #   inspired by "somafm" by Tom Nardi (MS3FGX@gmail.com)
-version = "3.1.3"
+version = "3.1.4"
 
 import re
 import os
@@ -846,4 +846,5 @@ while casting or sock is not None:
         spinner.spin(Fore.WHITE)
 
     # random poll sleep
-    teve.wait(timeout=random.uniform(10,20))
+    if teve.wait(timeout=random.uniform(10,20)):
+        break
