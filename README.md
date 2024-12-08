@@ -85,6 +85,10 @@ If you have very particular needs, you can use this flag to choose your weapon.
 This program requires `mpv` to be installed, which it controls via IPC over UDS:
 * [mpv](https://mpv.io/)
 
+Tested with versions >= v0.35.1.  
+v0.32.0 most definitely does not work.  
+Whether intermediate versions such as v0.33.0 are compatible is currently unknown.
+
 ## About SomaFM
 ![somabanner](http://somafm.com/linktous/728x90sfm.jpg)
 
