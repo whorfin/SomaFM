@@ -6,9 +6,9 @@ Known to work on Linux (including Raspberry Pi, Chrome OS's Crostini and Chromiu
 
 [^crouton]: For a simple audio-only installation without the need for any X11 or desktop shenanigans:
     - Download [crouton](https://github.com/dnschneid/crouton)
-    - `$ sudo sh crouton -r focal -t audio`
+    - `$ sudo sh crouton -r bookworm -t audio`
     - `$ sudo enter-chroot`
-    - `$ sudo apt install mpv python3-requests python3-colorama`
+    - `$ sudo apt install mpv python3 python3-requests python3-colorama`
     - ...and if you want to use Chromecast, also do this:
     - `$ sudo apt install python3-pychromecast`
 

@@ -3,7 +3,7 @@
 # by whorfin
 # Licensed under the GPLv3, see "COPYING"
 #   inspired by "somafm" by Tom Nardi (MS3FGX@gmail.com)
-version = "3.1.4"
+version = "3.1.5"
 
 import re
 import os
@@ -78,7 +78,8 @@ session.headers.update({
     'User-Agent' : f'/{uAgent}',
     'Accept-Encoding' : 'gzip, deflate, br'
 })
-retries = requests.adapters.Retry(total=64, backoff_factor=1, backoff_max=2*60, status_forcelist=[ 408, 500, 502, 503, 504 ])
+# default backoff_max (Retry.DEFAULT_BACKOFF_MAX) is 120 seconds
+retries = requests.adapters.Retry(total=64, backoff_factor=1, status_forcelist=[ 408, 500, 502, 503, 504 ])
 session.mount('https://', requests.adapters.HTTPAdapter(max_retries=retries))
 
 # wrap this for any other errors
