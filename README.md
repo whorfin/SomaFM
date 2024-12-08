@@ -82,8 +82,7 @@ The default `auto` will give a go at auto-detecting based on your OS defaults, w
 If you have very particular needs, you can use this flag to choose your weapon.
 
 ## Supported Player
-This program requires `mpv` to be installed, which it controls via IPC over UDS:
-* [mpv](https://mpv.io/)
+This program requires [mpv](https://mpv.io/) to be installed, which it controls via IPC over UDS.
 
 Tested with versions >= v0.35.1.  
 v0.32.0 most definitely does not work.  
