@@ -3,7 +3,7 @@
 # by whorfin
 # Licensed under the GPLv3, see "COPYING"
 #   inspired by "somafm" by Tom Nardi (MS3FGX@gmail.com)
-version = "3.1.5"
+version = "3.1.6"
 
 import re
 import os
@@ -298,6 +298,13 @@ def launchMPV(loopPlaylist = True, userAgent = uAgent):
     # start with IPC enabled, idling
     psa += [f"--input-ipc-server={udsock}"]
     psa += ["--idle"]
+
+    if args.verbose:
+        import shlex
+        print(f'{Fore.WHITE}Launching MPV:\n\t', end='')
+        for arg in psa:
+            print(shlex.quote(arg), end=' ')
+        print("")
 
     try:
         sp = subprocess.Popen(psa,

@@ -10,7 +10,7 @@ Known to work on Linux (including Raspberry Pi, Chrome OS's Crostini and Chromiu
     - `$ sudo enter-chroot`
     - `$ sudo apt install mpv python3 python3-requests python3-colorama`
     - ...and if you want to use Chromecast, also do this:
-    - `$ sudo apt install python3-pychromecast`
+        - `$ sudo apt install python3-pychromecast`
 
 For an up-to-date list of what's new, check the [Changelog](CHANGELOG.md)
 

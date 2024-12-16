@@ -1,7 +1,7 @@
 # Version History
 
 ## December, 2024
-- Release as v3.1.5
+- Release as v3.1.6
 - Fix spinner
 - Fix event race
 - Compatibility tweak for older Requests/pre-v2 urllib3
