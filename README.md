@@ -84,7 +84,7 @@ If you have very particular needs, you can use this flag to choose your weapon.
 ## Supported Player
 This program requires [mpv](https://mpv.io/) to be installed, which it controls via IPC over UDS.
 
-Tested with versions >= v0.35.1.  
+Tested with versions >= v0.34.1.  
 v0.32.0 most definitely does not work.  
 Whether intermediate versions such as v0.33.0 are compatible is currently unknown.
 
