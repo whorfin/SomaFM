@@ -1,11 +1,12 @@
 # Version History
 
 ## December, 2024
-- Release as v3.2.0
+- Release as v3.3.0
 - Fix spinner
 - Fix event race
 - Compatibility tweak for older Requests/pre-v2 urllib3
 - Disable cache for faster startup and in hopes of further squashing long uptime mpv issues
+- Keep socket recv buffer maintained
 
 ## November, 2024
 - Release as v3.1.0

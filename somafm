@@ -3,12 +3,13 @@
 # by whorfin
 # Licensed under the GPLv3, see "COPYING"
 #   inspired by "somafm" by Tom Nardi (MS3FGX@gmail.com)
-version = "3.2.1"
+version = "3.3.0"
 
 import re
 import os
 import sys
 import socket
+import select
 import signal
 import requests
 import argparse
@@ -586,10 +587,7 @@ def skipper():
     trackRated = None
     while True:
         k = getkey()
-        if k == '?':
-            # debugging - dump playlist
-            sockSendCmds(["get_property", "playlist"], mpvRequestID.PLAYLIST.value)
-        elif k == 'q':
+        if k == 'q':
             # Re-enable cursor if it was turned off
             print('\033[?25h')
             print(f'{Fore.RED}Shutting down...')
@@ -807,19 +805,6 @@ if playstream:
                         spinner.spin(Fore.CYAN)
                         time.sleep(.1)
                         sockSendCmds(["get_property", "audio-bitrate"], mpvRequestID.BITRATE.value)
-                elif "data" in event and "request_id" in event and event["request_id"] == mpvRequestID.PLAYLIST.value:
-                    # show playlist
-                    print(f"{Fore.CYAN}\n\t--------------------------")
-                    pls = event['data']
-                    for ptrk in pls:
-                        url = ptrk['filename']
-                        if 'current' in ptrk and ptrk['current']:
-                            pt = f"\t{Fore.YELLOW}→"
-                        else:
-                            pt = "\t "
-                        print(f"{pt}{Fore.CYAN}{url}")
-                    print(f"{Fore.CYAN}\t--------------------------", end="")
-                    sys.stdout.flush()
         except socket.error as e:
             print(f'{Fore.RED}\nSocket Error communicating with mpv:{e}')
             clean_exit()
@@ -859,6 +844,12 @@ while casting or sock is not None:
             track_log.write(track_desc + "\n")
     else:
         spinner.spin(Fore.WHITE)
+
+    # Empty the socket buffer so we don't get full
+    readable, writable, exceptional = select.select([sock], [], [], 0)
+    if readable:
+        # read and discard
+        sockReceive()
 
     # random poll sleep
     if teve.wait(timeout=random.uniform(10,20)):
