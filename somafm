@@ -3,7 +3,7 @@
 # by whorfin
 # Licensed under the GPLv3, see "COPYING"
 #   inspired by "somafm" by Tom Nardi (MS3FGX@gmail.com)
-version = "3.1.7"
+version = "3.2.0"
 
 import re
 import os
@@ -259,11 +259,9 @@ def launchMPV(loopPlaylist = True, userAgent = uAgent):
     #   somafm allows fast download of approx 8 seconds, then it is "realtime"
     #   (so we debugged with a 10sec cache setting)
     # Adding "--demuxer-cache-wait=yes" won't start until cache is full (and is 
-    #   supposed to have no further influence during runtime), otherwise
-    #   this combo of flags (which oddly requires cache-pause-initial though it 
-    #   doesn't wait) will set things up to maintain a 4 second cache, reading
-    #   more if needed even while playing
-    cacheSecs = 4
+    #   supposed to have no further influence during runtime)
+    # We now disable the cache entirely [other than internal demuxer caching]
+    #   faster startup, and hope to avoid some other observed issues with long uptime
     psa = ['mpv']
     psa += [f'--http-header-fields=User-Agent: {userAgent}']
     psa += ['--no-video',
@@ -277,8 +275,7 @@ def launchMPV(loopPlaylist = True, userAgent = uAgent):
     # default allows 150MiB; demuxer settings here just for safety
     #   NOTE - setting demux-max-back-bytes to zero seems to interfere 
     #   with metadata update detection in the stream
-    psa += ['--cache=yes',
-            f'--cache-secs={cacheSecs}',
+    psa += ['--cache=no',
             '--demuxer-max-bytes=1MiB',
             '--demuxer-max-back-bytes=16KiB',
             '--demuxer-donate-buffer=no'
