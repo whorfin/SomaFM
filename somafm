@@ -3,7 +3,7 @@
 # by whorfin
 # Licensed under the GPLv3, see "COPYING"
 #   inspired by "somafm" by Tom Nardi (MS3FGX@gmail.com)
-version = "3.3.0"
+version = "3.3.1"
 
 import re
 import os
@@ -811,7 +811,7 @@ if playstream:
 
 # Now we just sit and poll track changes and present track info
 lastTrack = None
-while casting or sock is not None:
+while True:
     # rather than using media-title, which may not be accessible with Rusty's
     # high-quality HLS flac streaming (or is completely unavailable when casting),
     # pull the complete info from the API
@@ -836,7 +836,7 @@ while casting or sock is not None:
         # Composite Track Name for logging, notifications and metadata
         track_desc = f"{artist} - {title} [{album}]"
 
-        # update metadata for playerctl and friends
+        # update metadata for playerctl and friends [if sock is active]
         sockSendCmds(["set_property", "force-media-title", track_desc])
 
         # Log track to file if enabled
@@ -846,8 +846,8 @@ while casting or sock is not None:
         spinner.spin(Fore.WHITE)
 
     # Empty the socket buffer so we don't get full
-    readable, writable, exceptional = select.select([sock], [], [], 0)
-    if readable:
+    readl, writel, exceptl = select.select([sock], [], [], 0)
+    if readl:
         # read and discard
         sockReceive()
 
