@@ -3,7 +3,7 @@
 # by whorfin
 # Licensed under the GPLv3, see "COPYING"
 #   inspired by "somafm" by Tom Nardi (MS3FGX@gmail.com)
-version = "3.4.0"
+version = "3.4.1"
 
 import re
 import os
@@ -155,7 +155,7 @@ def createUDS(udsock, sp):
         except:
             if sp.poll() is not None:
                 print(f'{Fore.RED}FAILED')
-                print(f'{Fore.RED}MPV returned {Fore.YELLOW}{sp.returncode}')
+                print(f'{Fore.RED}mpv returned {Fore.YELLOW}{sp.returncode}')
                 clean_exit()
 
             spinner.spin(color=Fore.WHITE)
@@ -233,7 +233,7 @@ def clean_exit():
         sock = None
     global playstream
     if playstream:
-        print("Waiting for MPV shutdown...", end='')
+        print("Waiting for mpv shutdown...", end='')
         sys.stdout.flush()
         try:
             playstream.wait(timeout=1)
@@ -326,7 +326,7 @@ def launchMPV(loopPlaylist = True, userAgent = uAgent):
 
     if args.verbose:
         import shlex
-        print(f'{Fore.WHITE}Launching MPV:\n\t', end='')
+        print(f'{Fore.WHITE}Launching mpv:\n\t', end='')
         for arg in psa:
             print(shlex.quote(arg), end=' ')
         print("")
@@ -339,7 +339,7 @@ def launchMPV(loopPlaylist = True, userAgent = uAgent):
                     shell=False, start_new_session=True)
     except:
         print(f'{Fore.RED}FAILED')
-        print(f'{Fore.WHITE}Encountered an unknown error launching MPV.')
+        print(f'{Fore.WHITE}Encountered an unknown error launching mpv.')
         clean_exit()
 
     return(sp)
