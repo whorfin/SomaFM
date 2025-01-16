@@ -3,7 +3,7 @@
 # by whorfin
 # Licensed under the GPLv3, see "COPYING"
 #   inspired by "somafm" by Tom Nardi (MS3FGX@gmail.com)
-version = "3.4.1"
+version = "3.5.0"
 
 import re
 import os
@@ -230,7 +230,30 @@ def clean_exit():
     global sock
     if sock is not None:
         sockSendCmds(["quit"])
+        sock.shutdown(socket.SHUT_RDWR)
+        sock.close()
         sock = None
+    global stream
+    if stream:
+        # stop playback and shut down cast app, back to ambient mode if enabled
+        stream.stop()
+        cast.quit_app()
+        global casting
+        casting = False
+        stream = False
+    termios.tcsetattr(sys.stdin, termios.TCSADRAIN, termSettings)
+    try:
+        os.unlink(udsock)
+    except OSError:
+        pass
+
+    # Close log file
+    if args.file:
+        track_log.close()
+
+    teve.set()  # wake up and exit the polling delay
+
+    # and finaly... [esp if we were in subprocess]
     global playstream
     if playstream:
         print("Waiting for mpv shutdown...", end='')
@@ -252,25 +275,6 @@ def clean_exit():
                 os.killpg(os.getpgid(playstream.pid), signal.SIGKILL)
                 print("")
         playstream = None
-    global stream
-    if stream:
-        # stop playback and shut down cast app, back to ambient mode if enabled
-        stream.stop()
-        cast.quit_app()
-        global casting
-        casting = False
-        stream = False
-    termios.tcsetattr(sys.stdin, termios.TCSADRAIN, termSettings)
-    try:
-        os.unlink(udsock)
-    except OSError:
-        pass
-
-    # Close log file
-    if args.file:
-        track_log.close()
-
-    teve.set()  # wake up and exit the polling delay
     sys.exit(0)
 
 # launch IPC-controlled, headless mpv

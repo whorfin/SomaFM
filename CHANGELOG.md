@@ -1,8 +1,9 @@
 # Version History
 
 ## January, 2025
-- Release as v3.4.1
+- Release as v3.5.0
 - More robust and aggressive shutdown of mpv, accomodating wrapper scripts, flatpak and so forth
+- Cleanup socket shutdown
 
 ## December, 2024
 - Release as v3.3.1
