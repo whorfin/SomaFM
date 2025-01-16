@@ -251,9 +251,7 @@ def clean_exit():
     if args.file:
         track_log.close()
 
-    teve.set()  # wake up and exit the polling delay
-
-    # and finaly... [esp if we were in subprocess]
+    # and finally... [esp if we were in subprocess]
     global playstream
     if playstream:
         print("Waiting for mpv shutdown...", end='')
@@ -275,6 +273,9 @@ def clean_exit():
                 os.killpg(os.getpgid(playstream.pid), signal.SIGKILL)
                 print("")
         playstream = None
+
+    teve.set()  # wake up and exit the polling delay
+
     sys.exit(0)
 
 # launch IPC-controlled, headless mpv
@@ -869,10 +870,11 @@ while True:
         spinner.spin(Fore.WHITE)
 
     # Empty the socket buffer so we don't get full
-    readl, writel, exceptl = select.select([sock], [], [], 0)
-    if readl:
-        # read and discard
-        sockReceive()
+    if sock:
+        readl, writel, exceptl = select.select([sock], [], [], 0)
+        if readl:
+            # read and discard
+            sockReceive()
 
     # random poll sleep
     if teve.wait(timeout=random.uniform(10,20)):
