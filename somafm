@@ -3,7 +3,7 @@
 # by whorfin
 # Licensed under the GPLv3, see "COPYING"
 #   inspired by "somafm" by Tom Nardi (MS3FGX@gmail.com)
-version = "3.5.0"
+version = "3.6.0"
 
 import re
 import os
@@ -66,13 +66,16 @@ socketLockR = Lock()
 # to play along...  
 # can send commands, ie {"command":["get_property","track-list"]}
 #   {"command":["get_property","metadata"]}
-#   {"command":["get_property","playlist"]}
 #   {"command":["playlist-play-index",0]}
 #   {"command":["set_property", "force-media-title","testing"]}
 #{"command":["get_property","metadata/by-key/icy-notice1"]}
 #   {"command":["get_property","cache"]}
 #   {"command":["set_property","cache", "no"]}
 #   {"command":["get_property","cache"]}
+#
+#   {"command":["get_property","playlist"]}
+#   {"command":["playlist-next"]}
+#   {"command":["playlist-prev"]}
 #
 #   unlike named pipes, each unix-domain socket connection gets its own session
 # $ socat - /tmp/mpvsocket.UUID
@@ -644,6 +647,14 @@ def skipper():
             print("\b ")    # eat previous spinner
             print(f'{Fore.CYAN}{datetime.now().strftime("%H:%M:%S")} | {Fore.GREEN}{artist} {Fore.WHITE}- {Fore.YELLOW}{title} {Fore.MAGENTA}[{album}]  {Fore.WHITE}', end="")
             sys.stdout.flush()
+        elif k == '>':
+            # move forward, circularly, through PLS, if for instance a server is funky
+            if playstream:
+                sockSendCmds(["playlist-next"])
+        elif k == '<':
+            # move backward, circularly, through PLS, if for instance a server is funky
+            if playstream:
+                sockSendCmds(["playlist-prev"])
 
     clean_exit()
 
