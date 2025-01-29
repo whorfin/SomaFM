@@ -3,7 +3,7 @@
 # by whorfin
 # Licensed under the GPLv3, see "COPYING"
 #   inspired by "somafm" by Tom Nardi (MS3FGX@gmail.com)
-version = "3.6.0"
+version = "3.6.1"
 
 import re
 import os
@@ -505,8 +505,10 @@ def startStream(channel_name):
     sock = createUDS(udsock, playstream)
 
     print(f'{Fore.RED}----------------------------------------------------------------------')
-    print(f'{Fore.WHITE}<Up> to Love a Track, <Down> to WTF?! a Track')
-    print(f'{Fore.WHITE}<q> to Quit')
+    print(f'{Fore.GREEN}<Up>{Fore.WHITE} to Love a Track, {Fore.GREEN}<Down>{Fore.WHITE} to WTF?! a Track')
+    if playstream:
+        print(f'\t{Fore.GREEN}>{Fore.WHITE} and {Fore.GREEN}<{Fore.WHITE} to switch stream servers')
+    print(f'{Fore.GREEN}q{Fore.WHITE} to Quit')
     print(f'{Fore.RED}----------------------------------------------------------------------')
 
     # send the URL and start
