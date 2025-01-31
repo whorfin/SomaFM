@@ -3,7 +3,7 @@
 # by whorfin
 # Licensed under the GPLv3, see "COPYING"
 #   inspired by "somafm" by Tom Nardi (MS3FGX@gmail.com)
-version = "3.6.1"
+version = "3.6.2"
 
 import re
 import os
@@ -657,6 +657,10 @@ def skipper():
             # move backward, circularly, through PLS, if for instance a server is funky
             if playstream:
                 sockSendCmds(["playlist-prev"])
+        elif k == '?':
+            # informative  - dump playlist at next polling interval
+            if playstream:
+                sockSendCmds(["get_property", "playlist"], mpvRequestID.PLAYLIST.value)
 
     clean_exit()
 
@@ -886,8 +890,26 @@ while True:
     if sock:
         readl, writel, exceptl = select.select([sock], [], [], 0)
         if readl:
-            # read and discard
-            sockReceive()
+            # read and process/discard
+            events = sockReceive()
+            if events:
+                for eventRaw in events.splitlines():
+                    event = json.loads(eventRaw)
+                    if args.verbose:
+                        print(event)
+                if "data" in event and "request_id" in event and event["request_id"] == mpvRequestID.PLAYLIST.value:
+                    # show playlist
+                    print(f"{Fore.CYAN}\n\t--------------------------")
+                    pls = event['data']
+                    for ptrk in pls:
+                        url = ptrk['filename']
+                        if 'current' in ptrk and ptrk['current']:
+                            pt = f"\t{Fore.YELLOW}→"
+                        else:
+                            pt = "\t "
+                        print(f"{pt}{Fore.CYAN}{url}")
+                    print(f"{Fore.CYAN}\t--------------------------", end="")
+                    sys.stdout.flush()
 
     # random poll sleep
     if teve.wait(timeout=random.uniform(10,20)):

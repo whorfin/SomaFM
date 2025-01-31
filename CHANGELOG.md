@@ -1,10 +1,11 @@
 # Version History
 
 ## January, 2025
-- Release as v3.6.1
+- Release as v3.6.2
 - More robust and aggressive shutdown of mpv, accomodating wrapper scripts, flatpak and so forth
 - Cleanup socket shutdown
 - Add PLS server migration [hidden]
+- Add [back] informative playlist status query
 
 ## December, 2024
 - Release as v3.3.1
