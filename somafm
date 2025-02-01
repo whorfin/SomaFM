@@ -3,7 +3,7 @@
 # by whorfin
 # Licensed under the GPLv3, see "COPYING"
 #   inspired by "somafm" by Tom Nardi (MS3FGX@gmail.com)
-version = "3.6.2"
+version = "3.7.0"
 
 import re
 import os
@@ -54,6 +54,7 @@ apiTimeout = 8
 sock = None
 teve = Event()
 casting = False
+doQuit = False
 
 # stash terminal settings for later restoral
 termSettings = termios.tcgetattr(sys.stdin)
@@ -277,6 +278,8 @@ def clean_exit():
                 print("")
         playstream = None
 
+    global doQuit
+    doQuit = True
     teve.set()  # wake up and exit the polling delay
 
     sys.exit(0)
@@ -507,7 +510,7 @@ def startStream(channel_name):
     print(f'{Fore.RED}----------------------------------------------------------------------')
     print(f'{Fore.GREEN}<Up>{Fore.WHITE} to Love a Track, {Fore.GREEN}<Down>{Fore.WHITE} to WTF?! a Track')
     if playstream:
-        print(f'\t{Fore.GREEN}>{Fore.WHITE} and {Fore.GREEN}<{Fore.WHITE} to switch stream servers')
+        print(f'\t{Fore.GREEN}<Left>{Fore.WHITE} and {Fore.GREEN}<Right>{Fore.WHITE} to switch stream servers')
     print(f'{Fore.GREEN}q{Fore.WHITE} to Quit')
     print(f'{Fore.RED}----------------------------------------------------------------------')
 
@@ -582,6 +585,21 @@ def startCast(channel_name):
 
     browser.stop_discovery()
 
+def getCleanedTrackInfo(track):
+    #   i've found a bunch of weird stuff, mostly unicode zero-width-spaces
+    #   so let's unescape things
+    artist = html.unescape(track['artist'])
+    title = html.unescape(track['title'])
+    album = html.unescape(track['album'])
+    return(artist, title, album)
+
+# Parse and show track information and time
+def displayTrack(track, timeColor=Fore.BLUE):
+    ## construct and print track name
+    (artist, title, album) = getCleanedTrackInfo(track)
+    print(f'{timeColor}{datetime.now().strftime("%H:%M:%S")} | {Fore.GREEN}{artist} {Fore.WHITE}- {Fore.YELLOW}{title} {Fore.MAGENTA}[{album}]  {Fore.WHITE}', end="")
+    sys.stdout.flush()
+
 def getkey():
     old_settings = termios.tcgetattr(sys.stdin)
     tty.setcbreak(sys.stdin.fileno())
@@ -639,21 +657,14 @@ def skipper():
         elif k == 'return':
             # force pull track info (don't update metadata, just print)
             track = getPlayingTrack()
-            ## construct and print track name
-            #   i've found a bunch of weird stuff, mostly unicode zero-width-spaces
-            #   so first let's unescape things
-            artist = html.unescape(track['artist'])
-            title = html.unescape(track['title'])
-            album = html.unescape(track['album'])
-            # Print date before track
+
             print("\b ")    # eat previous spinner
-            print(f'{Fore.CYAN}{datetime.now().strftime("%H:%M:%S")} | {Fore.GREEN}{artist} {Fore.WHITE}- {Fore.YELLOW}{title} {Fore.MAGENTA}[{album}]  {Fore.WHITE}', end="")
-            sys.stdout.flush()
-        elif k == '>':
+            displayTrack(track, timeColor=Fore.CYAN)
+        elif k == 'right':
             # move forward, circularly, through PLS, if for instance a server is funky
             if playstream:
                 sockSendCmds(["playlist-next"])
-        elif k == '<':
+        elif k == 'left':
             # move backward, circularly, through PLS, if for instance a server is funky
             if playstream:
                 sockSendCmds(["playlist-prev"])
@@ -661,6 +672,7 @@ def skipper():
             # informative  - dump playlist at next polling interval
             if playstream:
                 sockSendCmds(["get_property", "playlist"], mpvRequestID.PLAYLIST.value)
+                teve.set()  # respond immediately
 
     clean_exit()
 
@@ -862,19 +874,12 @@ while True:
     if track and track != lastTrack:
         lastTrack = track
 
-        ## construct and print track name
-        #   i've found a bunch of weird stuff, mostly unicode zero-width-spaces
-        #   so first let's unescape things
-        artist = html.unescape(track['artist'])
-        title = html.unescape(track['title'])
-        album = html.unescape(track['album'])
-
         spinner.spun()
         print(" ")
-        print(f'{Fore.BLUE}{datetime.now().strftime("%H:%M:%S")} | {Fore.GREEN}{artist} {Fore.WHITE}- {Fore.YELLOW}{title} {Fore.MAGENTA}[{album}] ', end="")
-        sys.stdout.flush()
+        displayTrack(track)
 
         # Composite Track Name for logging, notifications and metadata
+        (artist, title, album) = getCleanedTrackInfo(track)
         track_desc = f"{artist} - {title} [{album}]"
 
         # update metadata for playerctl and friends [if sock is active]
@@ -908,9 +913,17 @@ while True:
                         else:
                             pt = "\t "
                         print(f"{pt}{Fore.CYAN}{url}")
-                    print(f"{Fore.CYAN}\t--------------------------", end="")
-                    sys.stdout.flush()
+                    print(f"{Fore.CYAN}\t--------------------------")
+
+                    # force pull track info (don't update metadata, just print)
+                    track = getPlayingTrack()
+                    #print(" ")
+                    displayTrack(track, timeColor=Fore.CYAN)
+
+                    # reset event so we are back to slow polling
+                    teve.clear()
 
     # random poll sleep
     if teve.wait(timeout=random.uniform(10,20)):
-        break
+        if doQuit:
+            break

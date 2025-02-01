@@ -1,11 +1,12 @@
 # Version History
 
 ## January, 2025
-- Release as v3.6.2
+- Release as v3.7.0
 - More robust and aggressive shutdown of mpv, accomodating wrapper scripts, flatpak and so forth
 - Cleanup socket shutdown
 - Add PLS server migration [hidden]
 - Add [back] informative playlist status query
+- Change stream-switcher keys, make playlist inspection immediate, cleanup and show track info
 
 ## December, 2024
 - Release as v3.3.1
