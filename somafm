@@ -3,7 +3,7 @@
 # by whorfin
 # Licensed under the GPLv3, see "COPYING"
 #   inspired by "somafm" by Tom Nardi (MS3FGX@gmail.com)
-version = "3.7.0"
+version = "3.7.1"
 
 import re
 import os
@@ -927,3 +927,5 @@ while True:
     if teve.wait(timeout=random.uniform(10,20)):
         if doQuit:
             break
+        else:
+            time.sleep(.1)
