@@ -3,7 +3,7 @@
 # by whorfin
 # Licensed under the GPLv3, see "COPYING"
 #   inspired by "somafm" by Tom Nardi (MS3FGX@gmail.com)
-version = "3.7.1"
+version = "3.7.2"
 
 import re
 import os
@@ -507,13 +507,6 @@ def startStream(channel_name):
     global sock
     sock = createUDS(udsock, playstream)
 
-    print(f'{Fore.RED}----------------------------------------------------------------------')
-    print(f'{Fore.GREEN}<Up>{Fore.WHITE} to Love a Track, {Fore.GREEN}<Down>{Fore.WHITE} to WTF?! a Track')
-    if playstream:
-        print(f'\t{Fore.GREEN}<Left>{Fore.WHITE} and {Fore.GREEN}<Right>{Fore.WHITE} to switch stream servers')
-    print(f'{Fore.GREEN}q{Fore.WHITE} to Quit')
-    print(f'{Fore.RED}----------------------------------------------------------------------')
-
     # send the URL and start
     sendPlaybackURL(stream_link)
     startPlay()
@@ -794,6 +787,14 @@ else:
     # Else, playback stream locally
     startStream(args.channel)
 
+# Info Banner
+print(f'{Fore.RED}----------------------------------------------------------------------')
+print(f'{Fore.GREEN}<Up>{Fore.WHITE} to Love a Track, {Fore.GREEN}<Down>{Fore.WHITE} to WTF?! a Track')
+if playstream:
+    print(f'\t{Fore.GREEN}<Left>{Fore.WHITE} and {Fore.GREEN}<Right>{Fore.WHITE} to switch stream servers')
+print(f'{Fore.GREEN}q{Fore.WHITE} to Quit')
+print(f'{Fore.RED}----------------------------------------------------------------------')
+
 # playlist has been loaded and playback started
 #   now we just loop through the messages (if player is local, not cast)
 
@@ -897,7 +898,8 @@ while True:
         if readl:
             # read and process/discard
             events = sockReceive()
-            if events:
+            if events and playstream:
+                # only bother processing messages if we're playing locally, and thus might be querying/altering stream server; otherwise just eat 'em
                 for eventRaw in events.splitlines():
                     event = json.loads(eventRaw)
                     if args.verbose:

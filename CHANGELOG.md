@@ -1,7 +1,7 @@
 # Version History
 
 ## January, 2025
-- Release as v3.7.1
+- Release as v3.7.2
 - More robust and aggressive shutdown of mpv, accomodating wrapper scripts, flatpak and so forth
 - Cleanup socket shutdown
 - Add PLS server migration [hidden]
