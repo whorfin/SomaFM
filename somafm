@@ -3,7 +3,7 @@
 # by whorfin
 # Licensed under the GPLv3, see "COPYING"
 #   inspired by "somafm" by Tom Nardi (MS3FGX@gmail.com)
-version = "3.7.2"
+version = "3.7.3"
 
 import re
 import os
@@ -906,7 +906,8 @@ while True:
                         print(event)
                 if "data" in event and "request_id" in event and event["request_id"] == mpvRequestID.PLAYLIST.value:
                     # show playlist
-                    print(f"{Fore.CYAN}\n\t--------------------------")
+                    print("\b ")    # eat previous spinner before newline
+                    print(f"{Fore.CYAN}\t--------------------------")
                     pls = event['data']
                     for ptrk in pls:
                         url = ptrk['filename']
@@ -919,7 +920,6 @@ while True:
 
                     # force pull track info (don't update metadata, just print)
                     track = getPlayingTrack()
-                    #print(" ")
                     displayTrack(track, timeColor=Fore.CYAN)
 
                     # reset event so we are back to slow polling
