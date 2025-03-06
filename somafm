@@ -3,7 +3,7 @@
 # by whorfin
 # Licensed under the GPLv3, see "COPYING"
 #   inspired by "somafm" by Tom Nardi (MS3FGX@gmail.com)
-version = "3.7.3"
+version = "3.7.4"
 
 import re
 import os
@@ -517,7 +517,11 @@ def getPlayingTrack():
     songsr = sessionGet(f"{apiBase}/songs/{stid}.json")
     if not songsr:
         return
-    songs = songsr.json()
+    # API sometimes burps... guard against JSONDecodeError
+    try:
+        songs = songsr.json()
+    except requests.JSONDecoderError:
+        return
     track = songs["songs"][0]
     return(track)
 

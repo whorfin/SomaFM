@@ -1,5 +1,9 @@
 # Version History
 
+## March, 2025
+- Release as v3.7.4
+- Sprinkle some handling of API request failure exception edge behavior
+
 ## January, 2025
 - Release as v3.7.3
 - More robust and aggressive shutdown of mpv, accomodating wrapper scripts, flatpak and so forth
