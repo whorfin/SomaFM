@@ -3,7 +3,7 @@
 # by whorfin
 # Licensed under the GPLv3, see "COPYING"
 #   inspired by "somafm" by Tom Nardi (MS3FGX@gmail.com)
-version = "3.7.4"
+version = "3.7.5"
 
 import re
 import os
@@ -841,8 +841,9 @@ if playstream:
                 elif "data" in event and "request_id" in event and event["request_id"] == mpvRequestID.AO_DEVICE.value:
                     print(f"{Fore.MAGENTA}Audio Output Driver: {Fore.WHITE}{event['data']}")
                 elif "file_error" in event and event["file_error"] == "loading failed":
-                    print(f"\n{Fore.RED}ERROR: failed to load remote media")
-                    clean_exit()
+                    print(f"\n{Fore.RED}ERROR: failed to load remote media, trying next stream")
+                    time.sleep(.1)
+                    sockSendCmds(["playlist-next"])
                 elif "data" in event and "request_id" in event and event["request_id"] == mpvRequestID.METADATA.value:
                     if "icy-name" in event['data']:
                         print(f"{Fore.CYAN}Channel: {Fore.WHITE}{event['data']['icy-name']}")
