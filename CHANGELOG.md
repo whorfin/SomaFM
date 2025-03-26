@@ -1,9 +1,10 @@
 # Version History
 
 ## March, 2025
-- Release as v3.7.5
+- Release as v3.7.6
 - Sprinkle some handling of API request failure exception edge behavior
 - Try next stream when initial loading fails
+- Document the stream list key
 
 ## January, 2025
 - Release as v3.7.3
