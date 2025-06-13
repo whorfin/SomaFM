@@ -1,5 +1,9 @@
 # Version History
 
+## June, 2025
+- Release as v3.7.7
+- Fix rare exception when channel playing status json is corrupted
+
 ## March, 2025
 - Release as v3.7.6
 - Sprinkle some handling of API request failure exception edge behavior

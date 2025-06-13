@@ -3,7 +3,7 @@
 # by whorfin
 # Licensed under the GPLv3, see "COPYING"
 #   inspired by "somafm" by Tom Nardi (MS3FGX@gmail.com)
-version = "3.7.6"
+version = "3.7.7"
 
 import re
 import os
@@ -520,7 +520,8 @@ def getPlayingTrack():
     # API sometimes burps... guard against JSONDecodeError
     try:
         songs = songsr.json()
-    except requests.JSONDecoderError:
+    #except requests.JSONDecoderError:
+    except requests.JSONDecodeError:
         return
     track = songs["songs"][0]
     return(track)
@@ -654,9 +655,9 @@ def skipper():
         elif k == 'return':
             # force pull track info (don't update metadata, just print)
             track = getPlayingTrack()
-
-            print("\b ")    # eat previous spinner
-            displayTrack(track, timeColor=Fore.CYAN)
+            if track:
+                print("\b ")    # eat previous spinner
+                displayTrack(track, timeColor=Fore.CYAN)
         elif k == 'right':
             # move forward, circularly, through PLS, if for instance a server is funky
             if playstream:
@@ -926,7 +927,8 @@ while True:
 
                     # force pull track info (don't update metadata, just print)
                     track = getPlayingTrack()
-                    displayTrack(track, timeColor=Fore.CYAN)
+                    if track:
+                        displayTrack(track, timeColor=Fore.CYAN)
 
                     # reset event so we are back to slow polling
                     teve.clear()
