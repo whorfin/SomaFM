@@ -3,7 +3,7 @@
 # by whorfin
 # Licensed under the GPLv3, see "COPYING"
 #   inspired by "somafm" by Tom Nardi (MS3FGX@gmail.com)
-version = "3.7.8"
+version = "3.7.9"
 
 import re
 import os
@@ -650,7 +650,7 @@ def skipper():
                 if spinner.active:
                     print(" ", end="")
                 sys.stdout.flush()
-                #sendTrackLove(track)
+                sendTrackLove(track)
         elif k == 'down':
             track = getPlayingTrack()
             if track and track != trackRated:
@@ -661,12 +661,16 @@ def skipper():
                 if spinner.active:
                     print(" ", end="")
                 sys.stdout.flush()
-                #sendTrackWTF(track)
+                sendTrackWTF(track)
         elif k == 'return':
             # force pull track info (don't update metadata, just print)
             track = getPlayingTrack()
             if track:
-                print("\b ")    # eat previous spinner
+                if spinner.active:
+                    print("\b ")    # eat previous spinner
+                else:
+                    print("")
+                spinner.spun()
                 displayTrack(track, timeColor=Fore.CYAN)
         elif k == 'right':
             # move forward, circularly, through PLS, if for instance a server is funky
@@ -923,7 +927,10 @@ while True:
                         print(event)
                 if "data" in event and "request_id" in event and event["request_id"] == mpvRequestID.PLAYLIST.value:
                     # show playlist
-                    print("\b ")    # eat previous spinner before newline
+                    if spinner.active:
+                        print("\b ")    # eat previous spinner
+                    else:
+                        print("")
                     print(f"{Fore.CYAN}\t--------------------------")
                     pls = event['data']
                     for ptrk in pls:
@@ -938,6 +945,7 @@ while True:
                     # force pull track info (don't update metadata, just print)
                     track = getPlayingTrack()
                     if track:
+                        spinner.spun()
                         displayTrack(track, timeColor=Fore.CYAN)
 
                     # reset event so we are back to slow polling

@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="pysomafm",
-    version="3.7.8",
+    version="3.7.9",
     scripts=['somafm'],
     author="Lord Whorfin",
     author_email="whorfin+somafm@gmail.com",
