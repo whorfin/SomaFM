@@ -1,5 +1,9 @@
 # Version History
 
+## July, 2025
+- Release as v3.7.8
+- Elegancify spinner/love/WTF spacing
+
 ## June, 2025
 - Release as v3.7.7
 - Fix rare exception when channel playing status json is corrupted

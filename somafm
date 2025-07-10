@@ -3,7 +3,7 @@
 # by whorfin
 # Licensed under the GPLv3, see "COPYING"
 #   inspired by "somafm" by Tom Nardi (MS3FGX@gmail.com)
-version = "3.7.7"
+version = "3.7.8"
 
 import re
 import os
@@ -123,6 +123,8 @@ class Spinner:
     active = False
     i = 0
 
+    def active(self):
+        return self.active
     def spin(self, color=None):
         cursor = '\\|/-'[self.i]
         self.i += 1
@@ -595,7 +597,7 @@ def getCleanedTrackInfo(track):
 def displayTrack(track, timeColor=Fore.BLUE):
     ## construct and print track name
     (artist, title, album) = getCleanedTrackInfo(track)
-    print(f'{timeColor}{datetime.now().strftime("%H:%M:%S")} | {Fore.GREEN}{artist} {Fore.WHITE}- {Fore.YELLOW}{title} {Fore.MAGENTA}[{album}]  {Fore.WHITE}', end="")
+    print(f'{timeColor}{datetime.now().strftime("%H:%M:%S")} | {Fore.GREEN}{artist} {Fore.WHITE}- {Fore.YELLOW}{title} {Fore.MAGENTA}[{album}]{Fore.WHITE}', end="")
     sys.stdout.flush()
 
 def getkey():
@@ -642,16 +644,24 @@ def skipper():
             track = getPlayingTrack()
             if track and track != trackRated:
                 trackRated = track
-                print(f"\b{Fore.RED} ♥  {Fore.WHITE}", end="")
+                if spinner.active:
+                    print("\b", end="")
+                print(f"{Fore.RED}♥{Fore.WHITE}", end="")
+                if spinner.active:
+                    print(" ", end="")
                 sys.stdout.flush()
-                sendTrackLove(track)
+                #sendTrackLove(track)
         elif k == 'down':
             track = getPlayingTrack()
             if track and track != trackRated:
                 trackRated = track
-                print(f"\b{Fore.RED} ⛔  {Fore.WHITE}", end="")
+                if spinner.active:
+                    print("\b", end="")
+                print(f"{Fore.RED}⛔{Fore.WHITE}", end="")
+                if spinner.active:
+                    print(" ", end="")
                 sys.stdout.flush()
-                sendTrackWTF(track)
+                #sendTrackWTF(track)
         elif k == 'return':
             # force pull track info (don't update metadata, just print)
             track = getPlayingTrack()
