@@ -1,7 +1,7 @@
 # Version History
 
 ## July, 2025
-- Release as v3.7.10
+- Release as v3.7.11
 - Elegancify spinner/love/WTF spacing and iconography
 
 ## June, 2025
