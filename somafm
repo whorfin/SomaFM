@@ -3,7 +3,7 @@
 # by whorfin
 # Licensed under the GPLv3, see "COPYING"
 #   inspired by "somafm" by Tom Nardi (MS3FGX@gmail.com)
-version = "3.7.9"
+version = "3.7.10"
 
 import re
 import os
@@ -657,7 +657,10 @@ def skipper():
                 trackRated = track
                 if spinner.active:
                     print("\b", end="")
-                print(f"{Fore.RED}⛔{Fore.WHITE}", end="")
+                # these are wide and wants an extra space
+                #print(f"{Fore.RED}🛇 {Fore.WHITE}", end="")
+                #print(f"{Fore.RED}🖓{Fore.WHITE}", end="")
+                print(f"{Fore.RED}🕱 {Fore.WHITE}", end="")
                 if spinner.active:
                     print(" ", end="")
                 sys.stdout.flush()
